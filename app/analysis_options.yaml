@@ -1,1 +1,31 @@
+# KatharErase lint configuration
+# flutter_lints ^6.0.0 (re-verified live Aug 2026 — see pubspec.yaml comment)
 
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.freezed.dart"
+    - "**/*.g.dart"
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    # Architecture rule enforcement (manual review still required — these lints
+    # catch style issues, not the dart:io-in-core/ rule from the project
+    # instructions, which has no built-in lint and must be checked by eye
+    # or via a custom_lint package if one is added later).
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    unnecessary_this: true
+    always_declare_return_types: true
+
+# NOTE: The CI gate `grep -r "throw UnimplementedError" lib/` referenced in
+# Section 5 File 2's manifest purpose is NOT implemented here — it lives in
+# the CI workflow itself (.github/workflows/build_and_deploy.yml, Phase 7,
+# File 51), since analysis_options.yaml has no mechanism to run shell greps.
+# This file only configures `flutter analyze`.

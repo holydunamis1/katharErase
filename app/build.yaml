@@ -1,0 +1,17 @@
+targets:
+  $default:
+    builders:
+      freezed:
+        generate: true
+        options:
+          # Matches architecture rule: models are immutable, copyWith,
+          # toJson/fromJson, no hand-rolled equality.
+          copy_with: true
+          equal: true
+          to_string: true
+      json_serializable:
+        generate: true
+        options:
+          explicit_to_json: true
+          field_rename: snake
+          include_if_null: false
