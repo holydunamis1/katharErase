@@ -1,0 +1,202 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:crop_your_image/crop_your_image.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
+
+import '../core/services/storage_service.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/loading_overlay.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/toast_notification.dart';
+
+enum _AspectOption { free, square1x1, portrait4x5, portrait9x16 }
+
+/// Pre-edit: rotate 90° CW/CCW, aspect ratio toggle (free/1:1/4:5/9:16),
+/// crop. "Continue" to editor.
+///
+/// Rotation is handled via package:image (img.copyRotate) on the raw
+/// bytes before handing them to crop_your_image's Crop widget — that
+/// package explicitly states it does NOT do rotation/resize itself (see
+/// its own docs), only cropping.
+class CropRotateScreen extends StatefulWidget {
+  const CropRotateScreen({super.key, required this.imagePath});
+
+  final String imagePath;
+
+  @override
+  State<CropRotateScreen> createState() => _CropRotateScreenState();
+}
+
+class _CropRotateScreenState extends State<CropRotateScreen> {
+  final CropController _cropController = CropController();
+  Uint8List? _imageBytes;
+  _AspectOption _aspect = _AspectOption.free;
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBytes();
+  }
+
+  Future<void> _loadBytes() async {
+    try {
+      final bytes = await File(widget.imagePath).readAsBytes();
+      if (mounted) setState(() => _imageBytes = bytes);
+    } catch (e) {
+      if (mounted) {
+        ToastNotification.show(
+          context,
+          message: 'Could not load the image.',
+          type: ToastType.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _rotate(bool clockwise) async {
+    final bytes = _imageBytes;
+    if (bytes == null || _isProcessing) return;
+    setState(() => _isProcessing = true);
+    try {
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) throw Exception('decode failed');
+      final rotated = img.copyRotate(decoded, angle: clockwise ? 90 : -90);
+      final encoded = Uint8List.fromList(img.encodePng(rotated));
+      if (mounted) setState(() => _imageBytes = encoded);
+    } catch (e) {
+      if (mounted) {
+        ToastNotification.show(
+          context,
+          message: 'Could not rotate the image.',
+          type: ToastType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  double? get _aspectRatio => switch (_aspect) {
+        _AspectOption.free => null,
+        _AspectOption.square1x1 => 1.0,
+        _AspectOption.portrait4x5 => 4 / 5,
+        _AspectOption.portrait9x16 => 9 / 16,
+      };
+
+  Future<void> _onCropped(CropResult result) async {
+    switch (result) {
+      case CropResult.success(:final croppedImage):
+        try {
+          final tempDir = await StorageService.instance.getTempDirectoryPath();
+          final outPath = p.join(
+            tempDir,
+            'cropped_${DateTime.now().millisecondsSinceEpoch}.png',
+          );
+          await File(outPath).writeAsBytes(croppedImage);
+          if (mounted) {
+            setState(() => _isProcessing = false);
+            context.push('/editor', extra: outPath);
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() => _isProcessing = false);
+            ToastNotification.show(
+              context,
+              message: 'Could not save the cropped image.',
+              type: ToastType.error,
+            );
+          }
+        }
+      case CropResult.error(:final error):
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          ToastNotification.show(
+            context,
+            message: 'Crop failed.',
+            type: ToastType.error,
+          );
+        }
+        // ignore: avoid_print
+        print('Crop failed: $error');
+    }
+  }
+
+  void _continue() {
+    setState(() => _isProcessing = true);
+    _cropController.crop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      appBar: AppBar(title: const Text('Crop & Rotate')),
+      body: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                if (_imageBytes != null)
+                  Crop(
+                    image: _imageBytes!,
+                    controller: _cropController,
+                    aspectRatio: _aspectRatio,
+                    onCropped: _onCropped,
+                    baseColor: Colors.black,
+                    maskColor: Colors.black.withValues(alpha: 0.6),
+                  )
+                else
+                  const Center(child: CircularProgressIndicator()),
+                LoadingOverlay(visible: _isProcessing),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.rotate_left),
+                      tooltip: 'Rotate left',
+                      onPressed: () => _rotate(false),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon: const Icon(Icons.rotate_right),
+                      tooltip: 'Rotate right',
+                      onPressed: () => _rotate(true),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<_AspectOption>(
+                  segments: const [
+                    ButtonSegment(value: _AspectOption.free, label: Text('Free')),
+                    ButtonSegment(value: _AspectOption.square1x1, label: Text('1:1')),
+                    ButtonSegment(value: _AspectOption.portrait4x5, label: Text('4:5')),
+                    ButtonSegment(value: _AspectOption.portrait9x16, label: Text('9:16')),
+                  ],
+                  selected: {_aspect},
+                  onSelectionChanged: (s) => setState(() => _aspect = s.first),
+                ),
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  label: 'Continue',
+                  isLoading: _isProcessing,
+                  onPressed: _imageBytes == null ? null : _continue,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
