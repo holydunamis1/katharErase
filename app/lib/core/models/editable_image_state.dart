@@ -20,6 +20,11 @@ abstract class BrushStrokeEvent with _$BrushStrokeEvent {
     required List<Offset> points,
     required double brushSizePx,
     required bool isRestore, // false = erase, true = restore (Feature 3)
+    // Added during Phase 4: brush strength, set from
+    // currentBrushOpacity at the moment a stroke completes. Needed for
+    // brush_controls.dart's opacity slider to have somewhere to bake its
+    // value into each recorded stroke.
+    @Default(1.0) double opacity,
   }) = _BrushStrokeEvent;
 }
 
@@ -46,5 +51,20 @@ abstract class EditableImageState with _$EditableImageState {
     @Default(false) bool isProcessing,
     @Default(false) bool showBeforeAfter,
     Size? imageSize,
+    // Added during Phase 3 (image_edit_provider.dart): distinguishes
+    // "auto-segmentation not yet attempted" (maskBytes == null, this ==
+    // false) from "attempted and threw SegmentationException" (this ==
+    // true). fallback_manual_editor.dart (File 71) reads this flag to
+    // decide whether to show Feature 1's required fallback message.
+    // Added during Phase 4 (brush_controls.dart / editor_canvas.dart):
+    // "current brush tool" settings — what the NEXT stroke will use, as
+    // opposed to brushHistory which stores completed strokes. Follows the
+    // same pattern already established by blurRadius/edgeFeather/
+    // backgroundType above (current-tool-setting fields living directly
+    // on this state, not a separate notifier).
+    @Default(20.0) double currentBrushSizePx, // range: kBrushSizeMinPx-kBrushSizeMaxPx (constants.dart)
+    @Default(false) bool currentBrushIsRestore, // false = erase (primary tool), true = restore
+    @Default(1.0) double currentBrushOpacity,
+    @Default(false) bool autoSegmentationFailed,
   }) = _EditableImageState;
 }
