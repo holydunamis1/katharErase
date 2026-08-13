@@ -54,6 +54,19 @@ class ShareService {
     }
   }
 
+  /// Text-only share — no image attached. Added for settings_screen.dart's
+  /// "Share App" action, which promotes the app via text/link only.
+  /// Kept separate from shareImage rather than passing empty bytes through
+  /// XFile.fromData, which would produce a broken 0-byte attachment on
+  /// some platforms' share sheets.
+  Future<void> shareText(String text) async {
+    try {
+      await SharePlus.instance.share(ShareParams(text: text));
+    } catch (e) {
+      throw ShareException('Share failed.', e);
+    }
+  }
+
   /// Feature 15: Direct Share. Shares the processed image via the system
   /// share sheet. Also used as gal's fallback path per File 16's stated
   /// purpose ("Falls back to share sheet on gal failure").
