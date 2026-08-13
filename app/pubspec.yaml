@@ -31,6 +31,14 @@ dependencies:
                 # Still worth real scrutiny at Phase 2 since export_service.dart does the actual
                 # pixel compositing/resize for Features 5 & 14.
   gal: ^2.3.0 # Live-verified: latest is 2.3.2, this constraint already covers it. No change.
+  crop_your_image: ^2.0.0 # ADDED during Phase 5 (not in original Section 6). Feature 9 requires
+                           # interactive crop UI (draggable resize handles, aspect-ratio locking) —
+                           # no crop package existed in the manifest, and hand-rolling gesture-based
+                           # crop math well is error-prone. This provides a minimal-UI Crop widget
+                           # with CropController, undo/redo, and aspectRatio locking. Verified
+                           # publisher tsuyoshichujo.com, depends only on flutter + image (^4.3.0,
+                           # compatible with our image ^4.5.4 pin). Rotation (90° increments) is
+                           # handled separately via package:image, not this package.
   flutter_image_compress: ^2.5.1 # ADDED during Phase 2 (not in original Section 6). Required because
                                   # package:image has NO WebP encoder (decode-only) — confirmed live
                                   # against its own docs/changelog. Feature 5 requires WEBP export.
@@ -67,6 +75,12 @@ dependencies:
                         # docs import this directly alongside share_plus for XFile.fromData — it's
                         # otherwise only a transitive dependency, which trips flutter_lints'
                         # depend_on_referenced_packages rule. Verified publisher flutter.dev.
+  url_launcher: ^6.3.2 # ADDED during Phase 5 (not in original Section 6). settings_screen.dart needs
+                        # to open Privacy Policy/Support URLs and the App/Play Store rating page —
+                        # share_plus pulls in url_launcher_linux/web/windows only as INTERNAL
+                        # transitive dependencies for its own web-share fallback, not the actual
+                        # cross-platform package with Android/iOS implementations we need to call
+                        # directly. Verified publisher flutter.dev, min Dart SDK 3.6.
 
   # --- Monetization ---
   google_mobile_ads: ^9.0.0 # Live-verified, was ^5.0.0 (4 major versions behind).
