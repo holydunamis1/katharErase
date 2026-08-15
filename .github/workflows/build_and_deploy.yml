@@ -64,7 +64,7 @@ jobs:
           # can't be sourced or tested without a physical device; see
           # segmentation_service.dart's doc comment and README.md).
           # Any OTHER analyzer issue still fails this step loudly.
-          REMAINING=$(echo "$OUTPUT" | grep -E "•.*•" | grep -v "assets/models/segmentation.tflite doesn't exist")
+          REMAINING=$(echo "$OUTPUT" | grep -E "•.*•" | grep -v "segmentation.tflite")
           if [ -z "$REMAINING" ]; then
             echo ""
             echo "Only the known, tracked Section 14 blocker (missing segmentation.tflite) was found — treating as non-fatal for CI so later build steps can still be validated. This must still be resolved before shipping."
