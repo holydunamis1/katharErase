@@ -1,1 +1,41 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="badgeGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <clipPath id="cardClip">
+      <rect x="199" y="199" width="626" height="626" rx="56" />
+    </clipPath>
+    <clipPath id="rightHalfClip">
+      <rect x="512" y="199" width="313" height="626" />
+    </clipPath>
+    <pattern id="checker" width="53.25" height="53.25" patternUnits="userSpaceOnUse">
+      <rect width="53.25" height="53.25" fill="#FFFFFF" />
+      <rect width="26.625" height="26.625" fill="#CBD5E1" />
+      <rect x="26.625" y="26.625" width="26.625" height="26.625" fill="#CBD5E1" />
+    </pattern>
+  </defs>
 
+  <!-- Squircle badge background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="230" fill="url(#badgeGradient)" />
+
+  <!-- White photo card -->
+  <rect x="199" y="199" width="626" height="626" rx="56" fill="#FFFFFF" />
+
+  <!-- Checkerboard, clipped to card's right half -->
+  <g clip-path="url(#cardClip)">
+    <g clip-path="url(#rightHalfClip)">
+      <rect x="512" y="199" width="313" height="626" fill="url(#checker)" />
+    </g>
+  </g>
+
+  <!-- Center divider -->
+  <line x1="512" y1="199" x2="512" y2="825" stroke="#10B981" stroke-opacity="0.27" stroke-width="4" />
+
+  <!-- Bottle silhouette -->
+  <g fill="#10B981">
+    <rect x="363" y="374" width="59" height="63" rx="20" />
+    <rect x="335" y="425" width="115" height="216" rx="37" />
+  </g>
+</svg>
