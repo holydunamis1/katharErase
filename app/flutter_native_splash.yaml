@@ -1,1 +1,33 @@
+# Config for flutter_native_splash ^2.4.8 (live-verified Phase 1).
+# Run: dart run flutter_native_splash:create
+#
+# IMPORTANT CORRECTION to Section 5, File 73's spec: that file describes
+# a single assets/logo.svg serving "launcher icon, splash screen, and
+# website." flutter_native_splash does NOT support SVG input — confirmed
+# via the package's own GitHub issue #700, explicitly titled "This does
+# not support svg images please make it supportable." SVG is fine for
+# website/style.css (browsers render it natively) but not for this tool.
+#
+# This config therefore references assets/logo_1024.png — a PNG export
+# of the same logo, NOT listed in Section 5's original 77-file manifest.
+# Phase 9 (File 73) needs to produce both assets/logo.svg (web use) and
+# this PNG export (splash/icon generation use) — a real addition to that
+# phase's scope, not an oversight to silently work around here.
+# Both files remain Phase 9 deliverables; this config just can't run
+# correctly against Section 5's originally-specified single SVG file.
 
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/logo_1024.png
+  color_dark: "#0F0F11"
+  image_dark: assets/logo_1024.png
+
+  android_12:
+    image: assets/logo_1024.png
+    icon_background_color: "#FFFFFF"
+    image_dark: assets/logo_1024.png
+    icon_background_color_dark: "#0F0F11"
+
+  android: true
+  ios: true
+  web: false

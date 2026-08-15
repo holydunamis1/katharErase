@@ -1,0 +1,23 @@
+# Config for flutter_launcher_icons ^0.14.4 (live-verified Phase 1).
+# Run: dart run flutter_launcher_icons
+#
+# Same correction as flutter_native_splash.yaml (File 59): references
+# assets/logo_1024.png, not assets/logo.svg — flutter_launcher_icons also
+# requires a raster (PNG) source image, not SVG. See File 59's comment
+# for the full reasoning; not repeating it here beyond this pointer.
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo_1024.png"
+  min_sdk_android: 26 # matches app-wide minSdk (build.gradle, File 54) — tflite_flutter's real floor
+
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/logo_1024.png"
+
+  web:
+    generate: false # not targeting web per Section 1 (iOS + Android only)
+  windows:
+    generate: false
+  macos:
+    generate: false
