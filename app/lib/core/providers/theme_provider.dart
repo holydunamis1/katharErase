@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const String _themeModeKey = 'theme_mode';
 
-/// ValueNotifier<ThemeMode>, own SharedPreferences key, persists on
+/// `ValueNotifier<ThemeMode>`, own SharedPreferences key, persists on
 /// change.
 ///
 /// This is the single source of truth for theme — not UserSettings.

@@ -8,10 +8,10 @@ import 'subscription_provider.dart';
 const String kPlacementEditorBanner = 'editor_banner';
 const String kPlacementPostExportInterstitial = 'post_export_interstitial';
 
-/// ValueNotifier<AdLoadState> per placement, per Section 4. Only two
+/// `ValueNotifier<AdLoadState>` per placement, per Section 4. Only two
 /// placements exist in this app (editor_banner, post_export_interstitial)
 /// so this is two named, individually-listenable ValueNotifier fields
-/// rather than a dynamic Map<String, AdLoadState> — simpler and
+/// rather than a dynamic `Map<String, AdLoadState>` — simpler and
 /// type-safe for a fixed, known set of placements, while still matching
 /// "ValueNotifier per placement" literally.
 class AdProvider {

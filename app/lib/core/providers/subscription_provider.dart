@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../../platform/iap_service.dart';
 import 'settings_provider.dart';
 
-/// ValueNotifier<bool isAdFree>. Queries IAP on app start, listens to the
-/// purchase stream.
+/// `ValueNotifier<bool>` (isAdFree). Queries IAP on app start, listens to
+/// the purchase stream.
 ///
 /// Its only UI effect, per Section 4's explicit rule, is
 /// `bool showAds = !isAdFree` — no feature gates, no buttons disabled, no

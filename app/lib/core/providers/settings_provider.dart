@@ -1,10 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/user_settings.dart';
 import '../services/storage_service.dart';
 
-/// ValueNotifier<UserSettings>. Loads/persists settings, tracks
+/// `ValueNotifier<UserSettings>`. Loads/persists settings, tracks
 /// onboarding completion.
 ///
 /// themeMode and isAdFree fields on UserSettings are mirrors, not sources

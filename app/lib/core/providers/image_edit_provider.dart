@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -6,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/editable_image_state.dart';
 import '../services/segmentation_service.dart';
 
-/// ValueNotifier<EditableImageState>. CRUD operations: load image,
+/// `ValueNotifier<EditableImageState>`. CRUD operations: load image,
 /// auto-segment, apply brush, undo, redo, reset, set background, set
 /// feather, toggle before/after.
 ///
