@@ -1,1 +1,76 @@
+name: Build KatharErase Android
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Live-verified Aug 2026 during Phase 1: current stable is 3.44.7
+          # (was 3.24.0 in the original build plan, flagged stale there).
+          # Re-verify before each significant gap in build activity —
+          # Flutter ships new stable releases roughly every 1-2 months.
+          flutter-version: '3.44.7'
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: app
+
+      - name: Generate code (freezed models + ARB localization)
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: app
+        # Note: flutter gen-l10n (producing lib/generated/l10n/
+        # app_localizations.dart from lib/l10n/app_en.arb, per l10n.yaml)
+        # runs automatically as part of `flutter pub get` / `flutter build`
+        # when generate: true is set in pubspec.yaml — no separate step
+        # needed here.
+
+      - name: CI gate — no stub implementations
+        run: |
+          grep -r "throw UnimplementedError" lib/ && exit 1 || exit 0
+        working-directory: app
+
+      - name: Analyze
+        run: flutter analyze
+        working-directory: app
+
+      - name: Build release AAB
+        run: |
+          flutter build appbundle --release \
+            --obfuscate --split-debug-info=symbols
+        working-directory: app
+
+      - name: Build release APK
+        run: |
+          flutter build apk --release \
+            --obfuscate --split-debug-info=symbols
+        working-directory: app
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+        working-directory: app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: katharerase-release-aab
+          path: app/build/app/outputs/bundle/release/*.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: katharerase-release-apk
+          path: app/build/app/outputs/flutter-apk/*-release.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: katharerase-debug-apk
+          path: app/build/app/outputs/flutter-apk/*-debug.apk
