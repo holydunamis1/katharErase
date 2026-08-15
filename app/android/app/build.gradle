@@ -1,1 +1,95 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
+def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
+
+android {
+    namespace "com.zdmgold.katharerase"
+    compileSdk 35
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    defaultConfig {
+        applicationId "com.zdmgold.katharerase"
+        // minSdk 26 — corrected from the original blueprint's baseline of
+        // 21. tflite_flutter (Path B default, Section 6) documents a hard
+        // minimum of Android API 26; this is not an assumed value.
+        minSdk 26
+        // targetSdk 35 — Play Console's required minimum target API rises
+        // roughly annually. 35 is current as of this build plan's writing;
+        // re-verify against Play Console's actual current requirement
+        // before Section 15's store submission, the same way the Flutter
+        // SDK pin needed re-verification — this number moves independently
+        // of this file.
+        targetSdk 35
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true
+    }
+
+    signingConfigs {
+        release {
+            // Populated from android/key.properties at build time —
+            // that file is gitignored (see .gitignore, File 3) and must
+            // be created locally / injected via CI secrets, never
+            // committed. Section 1a tracks the underlying keystore as a
+            // pending setup item.
+            def keystorePropertiesFile = rootProject.file('key.properties')
+            if (keystorePropertiesFile.exists()) {
+                def keystoreProperties = new Properties()
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // Debug APK per CI's stated output (File 51) — unobfuscated,
+            // verbose logging, installable directly on the developer's
+            // phone for the phone-only verification workflow.
+            minifyEnabled false
+            debuggable true
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+// No coreLibraryDesugaring dependency added here — none of the pinned
+// plugins (tflite_flutter, camera, gal, sqflite, share_plus,
+// google_mobile_ads, in_app_purchase, permission_handler,
+// crop_your_image, flutter_image_compress, url_launcher,
+// app_tracking_transparency) were confirmed to require it. If a future
+// CI run surfaces a "use coreLibraryDesugaring" build error, that error
+// will name the specific requirement — better than guessing at one here.
