@@ -5,8 +5,6 @@ version: 1.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
-  # Flutter SDK itself is pinned in CI configs (Section 8), not here.
-  # Live-verified: current stable is 3.44.7. Was 3.24.0 in the build plan.
 
 dependencies:
   flutter:
@@ -15,115 +13,56 @@ dependencies:
     sdk: flutter
 
   # --- State & Navigation ---
-  provider: ^6.1.5+1 # Live-verified, was ^6.1.2. No breaking API changes since — same 6.x line.
-  go_router: ^16.2.0 # Live-verified, was ^14.1.0 (2 major versions behind).
-                      # Breaking route-config changes across v14->v16 — review CHANGELOG
-                      # before writing router.dart (File 49, Phase 6).
+  provider: ^6.1.5+1
+  go_router: ^16.2.0
 
   # --- Image & Camera ---
-  camera: ^0.12.0+2 # Live-verified, was ^0.11.0. Requires Android SDK 24+ (already satisfied by minSdk 26).
-  image_picker: ^1.2.3 # Live-verified, was ^1.0.7. Review CHANGELOG before Phase 5 (gallery picker) —
-                        # no known breaking API changes found, but not exercised until then.
-  image: ^4.5.4 # Live-verified, was ^4.1.3. NOT just a routine bump: flutter_native_splash ^2.4.8
-                # requires image ^4.5.4 and flutter_launcher_icons ^0.14.4 requires image ^4.2.0 —
-                # pinning below 4.5.4 here would force a version-solving conflict against those two
-                # dev_dependencies. This is a real dependency-graph constraint, not staleness.
-                # Still worth real scrutiny at Phase 2 since export_service.dart does the actual
-                # pixel compositing/resize for Features 5 & 14.
-  gal: ^2.3.0 # Live-verified: latest is 2.3.2, this constraint already covers it. No change.
-  crop_your_image: ^2.0.0 # ADDED during Phase 5 (not in original Section 6). Feature 9 requires
-                           # interactive crop UI (draggable resize handles, aspect-ratio locking) —
-                           # no crop package existed in the manifest, and hand-rolling gesture-based
-                           # crop math well is error-prone. This provides a minimal-UI Crop widget
-                           # with CropController, undo/redo, and aspectRatio locking. Verified
-                           # publisher tsuyoshichujo.com, depends only on flutter + image (^4.3.0,
-                           # compatible with our image ^4.5.4 pin). Rotation (90° increments) is
-                           # handled separately via package:image, not this package.
-  flutter_image_compress: ^2.5.1 # ADDED during Phase 2 (not in original Section 6). Required because
-                                  # package:image has NO WebP encoder (decode-only) — confirmed live
-                                  # against its own docs/changelog. Feature 5 requires WEBP export.
-                                  # This package's compressWithList() re-encodes the image-package's
-                                  # composited output to WebP via native platform encoders (Android:
-                                  # fast system encoder; iOS: SDWebImageWebPCoder, slower). Verified
-                                  # publisher fluttercandies.com. See export_service.dart for the
-                                  # try/catch -> JPG fallback pattern the package's own docs recommend.
+  camera: ^0.12.0+2
+  image_picker: ^1.2.3
+  image: ^4.5.4
+  gal: ^2.3.0
+  crop_your_image: ^2.0.0
+  flutter_image_compress: ^2.5.1
 
-  # --- On-Device ML — Path B (default): TFLite, cross-platform. ---
-  # Live-verified against pub.dev: still 0.12.1, verified publisher tensorflow.org,
-  # no newer release. Requires Android minSdkVersion 26 and a physical iOS device
-  # (may not work in iOS simulator).
+  # --- On-Device ML ---
   tflite_flutter: ^0.12.1
 
-  # Path A (optional, Android-only enhancement — see Section 16 / build plan):
-  # google_mlkit_subject_segmentation: ^[pin real version at time of enabling]
-
   # --- Storage ---
-  sqflite: ^2.4.3 # Live-verified, was ^2.3.3. Depends on path >=1.8.0 <3.0.0 — compatible with our path pin.
-  path_provider: ^2.1.6 # Live-verified, was ^2.1.2.
-  path: ^1.9.1 # Live-verified, was ^1.9.0. Also required transitively by flutter_native_splash (^1.9.1)
-               # and flutter_launcher_icons (^1.9.0) — this version satisfies both.
-  shared_preferences: ^2.5.5 # Live-verified, was ^2.2.3. Bigger jump — review before Phase 2/3
-                              # (storage_service.dart, settings_provider.dart). No breaking API
-                              # changes found in the wrapper surface (getX/setX), but not yet
-                              # exercised against actual code.
+  sqflite: ^2.4.3
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  shared_preferences: ^2.5.5
 
-  # --- Sharing ---
-  share_plus: ^13.3.0 # Live-verified, was ^7.2.2 (6 major versions behind).
-                       # Review share_plus CHANGELOG for breaking changes to Share.shareXFiles
-                       # etc. before writing share_service.dart (File 16, Phase 2).
-  cross_file: ^0.3.5+1 # ADDED during Phase 2 (not in original Section 6). share_plus's own current
-                        # docs import this directly alongside share_plus for XFile.fromData — it's
-                        # otherwise only a transitive dependency, which trips flutter_lints'
-                        # depend_on_referenced_packages rule. Verified publisher flutter.dev.
-  url_launcher: ^6.3.2 # ADDED during Phase 5 (not in original Section 6). settings_screen.dart needs
-                        # to open Privacy Policy/Support URLs and the App/Play Store rating page —
-                        # share_plus pulls in url_launcher_linux/web/windows only as INTERNAL
-                        # transitive dependencies for its own web-share fallback, not the actual
-                        # cross-platform package with Android/iOS implementations we need to call
-                        # directly. Verified publisher flutter.dev, min Dart SDK 3.6.
+  # --- Sharing & External Links ---
+  share_plus: ^13.3.0
+  cross_file: ^0.3.5+1
+  url_launcher: ^6.3.2
 
   # --- Monetization ---
-  google_mobile_ads: ^9.0.0 # Live-verified, was ^5.0.0 (4 major versions behind).
-                             # Review CHANGELOG for breaking ad-loading API changes before writing
-                             # ad_service.dart (File 17, Phase 2).
-  in_app_purchase: ^3.3.0 # Live-verified, was ^3.1.11. NOTE: newer versions default to StoreKit 2
-                           # on iOS instead of StoreKit 1 — real behavior change, not just a version
-                           # bump. Review before writing iap_service.dart (File 19, Phase 2).
-  app_tracking_transparency: ^2.0.6+1 # Live-verified, was ^2.0.4. Small, stable API surface — low risk.
-  permission_handler: ^13.0.1 # ADDED during Phase 2 (not in original Section 6). Required because
-                               # File 18's "permanently denied -> Settings deep-link" acceptance
-                               # criteria has no path through camera/image_picker alone — neither
-                               # exposes permission-status querying or openAppSettings(). Verified
-                               # publisher baseflow.com, min Dart SDK 3.6 (satisfied by 3.12).
+  google_mobile_ads: ^9.0.0
+  in_app_purchase: ^3.3.0
+  app_tracking_transparency: ^2.0.6+1
+  permission_handler: ^13.0.1
 
   # --- Localization ---
-  # DO NOT bump this independently of the Flutter SDK version. flutter_localizations
-  # (shipped from the Flutter SDK itself, not pub.dev) pins intl to an EXACT version,
-  # not a range. As of Flutter 3.44.7 that exact version is 0.19.0. Setting a higher
-  # intl version here causes a hard `flutter pub get` version-solving failure — this
-  # is a structural constraint, not staleness. Live-verified.
-  intl: ^0.19.0
+  # flutter_localizations from Flutter 3.44.7 pins intl to 0.20.2.
+  intl: ^0.20.2
 
   # --- UI ---
-  flutter_native_splash: ^2.4.8 # Live-verified, was ^2.4.0.
-  flutter_launcher_icons: ^0.14.4 # Live-verified, was ^0.13.1.
+  flutter_native_splash: ^2.4.8
+  flutter_launcher_icons: ^0.14.4
 
   # --- Codegen ---
-  freezed_annotation: ^3.0.0 # Live-verified, was ^2.4.1. BREAKING (paired with freezed ^3.2.5 below) —
-                              # see the freezed entry in dev_dependencies for what changed in Files 9-12.
-  json_annotation: ^4.12.0 # Live-verified, was ^4.9.0. No breaking changes affecting our usage.
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.12.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0 # Live-verified, was ^4.0.0. Min Dart SDK 3.8, satisfied by 3.12.
-  build_runner: ^2.6.0 # Live-verified (current recommended pairing), was ^2.4.9.
-  freezed: ^3.2.5 # Live-verified, was ^2.5.2. BREAKING SYNTAX CHANGE from 2.x, not just a version
-                  # bump: classes using the factory constructor must now be declared `abstract class`
-                  # (or `sealed class` for unions), not plain `class`. All four Phase 1 model files
-                  # (9-12) were rewritten to the 3.x syntax to match this pin — see those files.
-                  # Min Dart SDK 3.8, min analyzer 7.5.9, both satisfied by our 3.44.7/Dart 3.12 pin.
-  json_serializable: ^6.10.0 # Live-verified (current recommended pairing), was ^6.8.0.
+  flutter_lints: ^6.0.0
+  build_runner: ^2.6.0
+  freezed: ^3.2.5
+  json_serializable: ^6.10.0
 
 flutter:
   uses-material-design: true
