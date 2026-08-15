@@ -15,9 +15,9 @@ import 'router.dart';
 ///
 /// Provider.value note: all five providers here are plain classes (four
 /// extend ValueNotifier, AdProvider holds ValueNotifiers directly) — not
-/// ChangeNotifier — so this uses plain Provider<T>.value for DI lookup
+/// ChangeNotifier — so this uses plain `Provider<T>.value` for DI lookup
 /// only, never ChangeNotifierProvider. Reactivity for theme comes from
-/// the ValueListenableBuilder<ThemeMode> wrapping MaterialApp.router
+/// the `ValueListenableBuilder<ThemeMode>` wrapping MaterialApp.router
 /// below, not from package:provider's own change-notification mechanism,
 /// consistent with the "ValueNotifier + ListenableBuilder, provider is
 /// DI-only" architecture rule.
