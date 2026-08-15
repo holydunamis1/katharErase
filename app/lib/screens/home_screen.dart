@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../core/models/export_job.dart';
 import '../core/services/share_service.dart';
 import '../core/services/storage_service.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/recent_export_tile.dart';
@@ -44,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _pickFromGallery(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -53,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (context.mounted) {
         ToastNotification.show(
           context,
-          message: 'Could not open gallery.',
+          message: l10n.homeGalleryOpenFailed,
           type: ToastType.error,
         );
       }
@@ -65,13 +67,14 @@ class _HomeScreenState extends State<HomeScreen> {
   /// or export_bottom_sheet involved (a completed ExportJob has no mask/
   /// EditableImageState attached, just a finished file on disk).
   Future<void> _shareAgain(BuildContext context, ExportJob job) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final file = File(job.filePath);
       if (!await file.exists()) {
         if (context.mounted) {
           ToastNotification.show(
             context,
-            message: 'This export is no longer available.',
+            message: l10n.homeExportUnavailable,
             type: ToastType.error,
           );
         }
@@ -86,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (context.mounted) {
         ToastNotification.show(
           context,
-          message: 'Could not share this export.',
+          message: l10n.homeShareFailed,
           type: ToastType.error,
         );
       }
@@ -95,9 +98,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return AppScaffold(
       appBar: AppBar(
-        title: const Text('KatharErase'),
+        title: Text(l10n.appTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -118,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: _BigActionButton(
                       icon: Icons.photo_camera,
-                      label: 'Camera',
+                      label: l10n.homeCameraButton,
                       onTap: () => context.push('/camera'),
                     ),
                   ),
@@ -126,14 +131,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: _BigActionButton(
                       icon: Icons.photo_library_outlined,
-                      label: 'Gallery',
+                      label: l10n.homeGalleryButton,
                       onTap: () => _pickFromGallery(context),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              Text('Recent Exports', style: Theme.of(context).textTheme.titleMedium),
+              Text(l10n.homeRecentExports, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               if (_loading)
                 const Padding(

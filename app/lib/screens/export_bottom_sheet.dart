@@ -14,6 +14,7 @@ import '../core/providers/subscription_provider.dart';
 import '../core/services/export_service.dart';
 import '../core/services/share_service.dart';
 import '../core/services/storage_service.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../widgets/loading_overlay.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/toast_notification.dart';
@@ -60,6 +61,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
   }
 
   Future<void> _export(BuildContext context, {required bool alsoShare}) async {
+    final l10n = AppLocalizations.of(context);
     final imageProvider = Provider.of<ImageEditProvider>(context, listen: false);
     final state = imageProvider.value;
     if (state.originalPath == null || state.imageSize == null) return;
@@ -116,19 +118,15 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
 
       final saved = await ShareService.instance.saveToGallery(exportBytes);
       if (!saved && context.mounted) {
-        // gal failed — fall back to share sheet per share_service.dart's
-        // documented fallback pattern.
         await ShareService.instance.shareImage(exportBytes, filename: filename);
       } else if (alsoShare) {
         await ShareService.instance.shareImage(exportBytes, filename: filename);
       }
 
       if (context.mounted) {
-        ToastNotification.show(context, message: 'Exported!', type: ToastType.success);
+        ToastNotification.show(context, message: l10n.exportSuccess, type: ToastType.success);
       }
 
-      // Post-export interstitial (Free user only, 120s cap enforced in
-      // ad_service.dart via ad_provider).
       if (context.mounted) {
         final subscriptionProvider =
             Provider.of<SubscriptionProvider>(context, listen: false);
@@ -139,16 +137,12 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
       }
 
       if (context.mounted) {
-        Navigator.of(context).pop(); // dismiss sheet
-        context.go('/'); // dismisses to home per File 44's stated behavior
+        Navigator.of(context).pop();
+        context.go('/');
       }
     } catch (e) {
       if (context.mounted) {
-        ToastNotification.show(
-          context,
-          message: 'Export failed. Please try again.',
-          type: ToastType.error,
-        );
+        ToastNotification.show(context, message: l10n.exportFailed, type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _isExporting = false);
@@ -157,6 +151,8 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -173,20 +169,23 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Export', style: Theme.of(context).textTheme.titleLarge),
+                Text(l10n.exportTitle, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 16),
                 SegmentedButton<ExportFormat>(
-                  segments: const [
-                    ButtonSegment(value: ExportFormat.png, label: Text('PNG')),
-                    ButtonSegment(value: ExportFormat.jpg, label: Text('JPG')),
-                    ButtonSegment(value: ExportFormat.webp, label: Text('WEBP')),
+                  segments: [
+                    ButtonSegment(value: ExportFormat.png, label: Text(l10n.exportFormatPng)),
+                    ButtonSegment(value: ExportFormat.jpg, label: Text(l10n.exportFormatJpg)),
+                    ButtonSegment(value: ExportFormat.webp, label: Text(l10n.exportFormatWebp)),
                   ],
                   selected: {_format},
                   onSelectionChanged: (s) => setState(() => _format = s.first),
                 ),
                 if (_showQualitySlider) ...[
                   const SizedBox(height: 12),
-                  Text('Quality: $_quality', style: Theme.of(context).textTheme.labelMedium),
+                  Text(
+                    l10n.exportQualityLabel(_quality),
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
                   Slider(
                     value: _quality.toDouble(),
                     min: 1,
@@ -195,32 +194,32 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                   ),
                 ],
                 const SizedBox(height: 12),
-                Text('Resize', style: Theme.of(context).textTheme.labelMedium),
+                Text(l10n.exportResizeLabel, style: Theme.of(context).textTheme.labelMedium),
                 Wrap(
                   spacing: 8,
                   children: [
                     ChoiceChip(
-                      label: const Text('Original'),
+                      label: Text(l10n.exportResizeOriginal),
                       selected: _resizeMode == ResizeMode.original,
                       onSelected: (_) => setState(() => _resizeMode = ResizeMode.original),
                     ),
                     ChoiceChip(
-                      label: const Text('1:1'),
+                      label: Text(l10n.cropAspect1x1),
                       selected: _resizeMode == ResizeMode.square1x1,
                       onSelected: (_) => setState(() => _resizeMode = ResizeMode.square1x1),
                     ),
                     ChoiceChip(
-                      label: const Text('4:5'),
+                      label: Text(l10n.cropAspect4x5),
                       selected: _resizeMode == ResizeMode.portrait4x5,
                       onSelected: (_) => setState(() => _resizeMode = ResizeMode.portrait4x5),
                     ),
                     ChoiceChip(
-                      label: const Text('9:16'),
+                      label: Text(l10n.cropAspect9x16),
                       selected: _resizeMode == ResizeMode.portrait9x16,
                       onSelected: (_) => setState(() => _resizeMode = ResizeMode.portrait9x16),
                     ),
                     ChoiceChip(
-                      label: const Text('Custom'),
+                      label: Text(l10n.exportResizeCustom),
                       selected: _resizeMode == ResizeMode.custom,
                       onSelected: (_) => setState(() => _resizeMode = ResizeMode.custom),
                     ),
@@ -234,7 +233,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                         child: TextField(
                           controller: _customWidthController,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Width (px)'),
+                          decoration: InputDecoration(labelText: l10n.exportWidthLabel),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -242,7 +241,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                         child: TextField(
                           controller: _customHeightController,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Height (px)'),
+                          decoration: InputDecoration(labelText: l10n.exportHeightLabel),
                         ),
                       ),
                     ],
@@ -250,7 +249,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                 ],
                 const SizedBox(height: 20),
                 PrimaryButton(
-                  label: 'Save to Gallery',
+                  label: l10n.exportSaveToGallery,
                   icon: Icons.download,
                   isLoading: _isExporting,
                   onPressed: () => _export(context, alsoShare: false),
@@ -259,11 +258,11 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                 OutlinedButton.icon(
                   onPressed: _isExporting ? null : () => _export(context, alsoShare: true),
                   icon: const Icon(Icons.ios_share),
-                  label: const Text('Share'),
+                  label: Text(l10n.exportShare),
                 ),
               ],
             ),
-            LoadingOverlay(visible: _isExporting, message: 'Exporting…'),
+            LoadingOverlay(visible: _isExporting, message: l10n.exportInProgress),
           ],
         ),
       ),

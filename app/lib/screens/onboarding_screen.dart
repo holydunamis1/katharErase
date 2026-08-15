@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../core/providers/settings_provider.dart';
 import '../core/utils/constants.dart';
+import '../generated/l10n/app_localizations.dart';
+import '../platform/ad_service.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/primary_button.dart';
 
@@ -15,6 +17,11 @@ import '../widgets/primary_button.dart';
 /// calls below use errorBuilder fallbacks so this screen doesn't crash
 /// before those assets exist — once Phase 9 places the real files, the
 /// fallback path simply stops triggering.
+///
+/// Retrofit note: page title/body strings now come from AppLocalizations
+/// rather than a static const list — AppLocalizations lookups are runtime
+/// instance method calls, not compile-time constants, so _pages moved
+/// from a static const field to a build-time method taking BuildContext.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -26,26 +33,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _page = 0;
 
-  static const _pages = [
-    _OnboardingPageData(
-      asset: 'assets/images/onboarding_auto.png',
-      title: 'Remove backgrounds instantly',
-      body: 'Tap once and our on-device AI removes the background from '
-          'your photo — no internet required.',
-    ),
-    _OnboardingPageData(
-      asset: 'assets/images/onboarding_manual.png',
-      title: 'Fine-tune with the brush',
-      body: 'Zoom in and paint away anything the AI missed, or restore '
-          'parts you want to keep.',
-    ),
-    _OnboardingPageData(
-      asset: 'assets/images/onboarding_ads.png',
-      title: 'Free with ads',
-      body: 'Every feature is free, supported by ads. Go ad-free anytime '
-          'for just \$0.99/month.',
-    ),
+  static const _assets = [
+    'assets/images/onboarding_auto.png',
+    'assets/images/onboarding_manual.png',
+    'assets/images/onboarding_ads.png',
   ];
+
+  List<_OnboardingPageData> _pages(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      _OnboardingPageData(
+        asset: _assets[0],
+        title: l10n.onboardingPage1Title,
+        body: l10n.onboardingPage1Body,
+      ),
+      _OnboardingPageData(
+        asset: _assets[1],
+        title: l10n.onboardingPage2Title,
+        body: l10n.onboardingPage2Body,
+      ),
+      _OnboardingPageData(
+        asset: _assets[2],
+        title: l10n.onboardingPage3Title,
+        body: l10n.onboardingPage3Body,
+      ),
+    ];
+  }
 
   @override
   void dispose() {
@@ -56,15 +69,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _finish(BuildContext context) async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     await settings.completeOnboarding();
+
+    // ATT request (post-onboarding), Section 1a compliance table. This
+    // is the immediate first-run trigger — main.dart's startup sequence
+    // separately covers the returning-user case (onboarding completed in
+    // a prior session but the app was killed before ATT could show).
+    // AppTrackingTransparency's request call is safe to invoke more than
+    // once — it only shows UI when status is notDetermined, otherwise it
+    // just returns the existing status — so there's no double-prompt risk
+    // between these two trigger points.
+    if (!settings.value.hasSeenAttPrompt) {
+      await AdService.instance.requestTrackingAuthorization();
+      await settings.markAttPromptSeen();
+    }
+
     if (context.mounted) context.go('/');
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final accent =
         Theme.of(context).brightness == Brightness.dark
             ? AppColors.accentDark
             : AppColors.accentLight;
+    final pages = _pages(context);
 
     return AppScaffold(
       body: Column(
@@ -72,9 +101,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Expanded(
             child: PageView.builder(
               controller: _pageController,
-              itemCount: _pages.length,
+              itemCount: pages.length,
               onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (context, i) => _OnboardingPage(data: _pages[i]),
+              itemBuilder: (context, i) => _OnboardingPage(data: pages[i]),
             ),
           ),
           Padding(
@@ -83,7 +112,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_pages.length, (i) {
+                  children: List.generate(pages.length, (i) {
                     final active = i == _page;
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -99,9 +128,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  label: _page == _pages.length - 1 ? 'Get Started' : 'Next',
+                  label: _page == pages.length - 1
+                      ? l10n.onboardingGetStarted
+                      : l10n.onboardingNext,
                   onPressed: () {
-                    if (_page == _pages.length - 1) {
+                    if (_page == pages.length - 1) {
                       _finish(context);
                     } else {
                       _pageController.nextPage(

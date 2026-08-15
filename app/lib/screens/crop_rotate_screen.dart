@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 
 import '../core/services/storage_service.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/loading_overlay.dart';
 import '../widgets/primary_button.dart';
@@ -51,7 +52,7 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
       if (mounted) {
         ToastNotification.show(
           context,
-          message: 'Could not load the image.',
+          message: AppLocalizations.of(context).cropLoadFailed,
           type: ToastType.error,
         );
       }
@@ -72,7 +73,7 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
       if (mounted) {
         ToastNotification.show(
           context,
-          message: 'Could not rotate the image.',
+          message: AppLocalizations.of(context).cropRotateFailed,
           type: ToastType.error,
         );
       }
@@ -89,6 +90,7 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
       };
 
   Future<void> _onCropped(CropResult result) async {
+    final l10n = AppLocalizations.of(context);
     switch (result) {
       case CropResult.success(:final croppedImage):
         try {
@@ -105,21 +107,13 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
         } catch (e) {
           if (mounted) {
             setState(() => _isProcessing = false);
-            ToastNotification.show(
-              context,
-              message: 'Could not save the cropped image.',
-              type: ToastType.error,
-            );
+            ToastNotification.show(context, message: l10n.cropSaveFailed, type: ToastType.error);
           }
         }
       case CropResult.error(:final error):
         if (mounted) {
           setState(() => _isProcessing = false);
-          ToastNotification.show(
-            context,
-            message: 'Crop failed.',
-            type: ToastType.error,
-          );
+          ToastNotification.show(context, message: l10n.cropFailed, type: ToastType.error);
         }
         // ignore: avoid_print
         print('Crop failed: $error');
@@ -133,8 +127,10 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return AppScaffold(
-      appBar: AppBar(title: const Text('Crop & Rotate')),
+      appBar: AppBar(title: Text(l10n.cropTitle)),
       body: Column(
         children: [
           Expanded(
@@ -164,31 +160,29 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.rotate_left),
-                      tooltip: 'Rotate left',
                       onPressed: () => _rotate(false),
                     ),
                     const SizedBox(width: 16),
                     IconButton(
                       icon: const Icon(Icons.rotate_right),
-                      tooltip: 'Rotate right',
                       onPressed: () => _rotate(true),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 SegmentedButton<_AspectOption>(
-                  segments: const [
-                    ButtonSegment(value: _AspectOption.free, label: Text('Free')),
-                    ButtonSegment(value: _AspectOption.square1x1, label: Text('1:1')),
-                    ButtonSegment(value: _AspectOption.portrait4x5, label: Text('4:5')),
-                    ButtonSegment(value: _AspectOption.portrait9x16, label: Text('9:16')),
+                  segments: [
+                    ButtonSegment(value: _AspectOption.free, label: Text(l10n.cropAspectFree)),
+                    ButtonSegment(value: _AspectOption.square1x1, label: Text(l10n.cropAspect1x1)),
+                    ButtonSegment(value: _AspectOption.portrait4x5, label: Text(l10n.cropAspect4x5)),
+                    ButtonSegment(value: _AspectOption.portrait9x16, label: Text(l10n.cropAspect9x16)),
                   ],
                   selected: {_aspect},
                   onSelectionChanged: (s) => setState(() => _aspect = s.first),
                 ),
                 const SizedBox(height: 16),
                 PrimaryButton(
-                  label: 'Continue',
+                  label: l10n.cropContinue,
                   isLoading: _isProcessing,
                   onPressed: _imageBytes == null ? null : _continue,
                 ),

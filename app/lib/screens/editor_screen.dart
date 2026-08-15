@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/background_selector.dart';
@@ -29,10 +30,7 @@ enum _EditorTab { auto, manual, background }
 /// bottom_toolbar.dart (File 37) exactly. Section 3's detailed flow
 /// diagram places those five actions at the bottom only, matching File 37
 /// exactly, and gives the top bar just [Back] + the three-tab segmented
-/// control. Section 3's diagram is more specific and doesn't conflict
-/// with any other file's manifest purpose, so it's treated as
-/// authoritative here — the abbreviated table description in File 43 is
-/// read as imprecise shorthand, not a literal second control row.
+/// control. Section 3's diagram is treated as authoritative here.
 class EditorScreen extends StatefulWidget {
   const EditorScreen({super.key, required this.imagePath});
 
@@ -87,6 +85,8 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return AppScaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -94,10 +94,13 @@ class _EditorScreenState extends State<EditorScreen> {
           onPressed: () => context.pop(),
         ),
         title: SegmentedButton<_EditorTab>(
-          segments: const [
-            ButtonSegment(value: _EditorTab.auto, label: Text('Auto')),
-            ButtonSegment(value: _EditorTab.manual, label: Text('Manual')),
-            ButtonSegment(value: _EditorTab.background, label: Text('Background')),
+          segments: [
+            ButtonSegment(value: _EditorTab.auto, label: Text(l10n.editorTabAuto)),
+            ButtonSegment(value: _EditorTab.manual, label: Text(l10n.editorTabManual)),
+            ButtonSegment(
+              value: _EditorTab.background,
+              label: Text(l10n.editorTabBackground),
+            ),
           ],
           selected: {_tab},
           onSelectionChanged: (s) => setState(() => _tab = s.first),
@@ -120,11 +123,6 @@ class _EditorScreenState extends State<EditorScreen> {
                     if (!state.autoSegmentationFailed) {
                       return const SizedBox.shrink();
                     }
-                    // Feature 1 fallback message (File 71's fuller
-                    // fallback_manual_editor.dart is the Phase 9 version
-                    // of this same signal — this inline banner is the
-                    // Phase 5 screen-level acknowledgment of the same
-                    // autoSegmentationFailed flag).
                     return Positioned(
                       top: 8,
                       left: 8,
@@ -132,12 +130,9 @@ class _EditorScreenState extends State<EditorScreen> {
                       child: Material(
                         color: Theme.of(context).colorScheme.errorContainer,
                         borderRadius: BorderRadius.circular(8),
-                        child: const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Text(
-                            "Your device doesn't support automatic background "
-                            'removal. Use the manual eraser below.',
-                          ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(l10n.editorSegmentationFailedMessage),
                         ),
                       ),
                     );

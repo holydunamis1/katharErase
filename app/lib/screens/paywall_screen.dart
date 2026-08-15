@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/providers/subscription_provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import '../platform/iap_service.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/primary_button.dart';
@@ -22,6 +23,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   bool _isPurchasing = false;
 
   Future<void> _purchase(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _isPurchasing = true);
     try {
       final response = await IapService.instance.queryAdFreeProduct();
@@ -29,19 +31,16 @@ class _PaywallScreenState extends State<PaywallScreen> {
         if (context.mounted) {
           ToastNotification.show(
             context,
-            message: 'Ad-free plan is not available right now.',
+            message: l10n.paywallProductUnavailable,
             type: ToastType.error,
           );
         }
         return;
       }
       await IapService.instance.buyAdFreeSubscription(response.productDetails.first);
-      // Entitlement update arrives asynchronously via subscription_
-      // provider's purchaseStream listener (Phase 3) — this screen
-      // doesn't need to poll or wait here.
     } catch (e) {
       if (context.mounted) {
-        ToastNotification.show(context, message: 'Purchase failed.', type: ToastType.error);
+        ToastNotification.show(context, message: l10n.paywallPurchaseFailed, type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _isPurchasing = false);
@@ -49,30 +48,32 @@ class _PaywallScreenState extends State<PaywallScreen> {
   }
 
   Future<void> _restore(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     try {
       await IapService.instance.restorePurchases();
       if (context.mounted) {
         ToastNotification.show(
           context,
-          message: 'Restore requested — check back in a moment.',
+          message: l10n.settingsRestoreRequested,
           type: ToastType.info,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ToastNotification.show(context, message: 'Restore failed.', type: ToastType.error);
+        ToastNotification.show(context, message: l10n.settingsRestoreFailed, type: ToastType.error);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final subscriptionProvider =
         Provider.of<SubscriptionProvider>(context, listen: false);
 
     return AppScaffold(
       appBar: AppBar(
-        title: const Text('Go Ad-Free'),
+        title: Text(l10n.paywallTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => context.pop(),
@@ -82,10 +83,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
         valueListenable: subscriptionProvider,
         builder: (context, isAdFree, _) {
           if (isAdFree) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text("You're already ad-free. Thank you!"),
+                padding: const EdgeInsets.all(32),
+                child: Text(l10n.paywallAlreadyAdFree),
               ),
             );
           }
@@ -98,18 +99,18 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   children: [
                     Expanded(
                       child: _PlanCard(
-                        title: 'Free',
-                        price: '\$0',
-                        bullets: const ['All 14 features', 'Ad-supported'],
+                        title: l10n.paywallPlanFreeTitle,
+                        price: l10n.paywallPlanFreePrice,
+                        bullets: [l10n.paywallFeatureAllFeatures, l10n.paywallFeatureAdSupported],
                         highlighted: false,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _PlanCard(
-                        title: 'Ad-Free',
-                        price: '\$0.99/mo',
-                        bullets: const ['All 14 features', 'Zero ads'],
+                        title: l10n.paywallPlanAdFreeTitle,
+                        price: l10n.paywallPlanAdFreePrice,
+                        bullets: [l10n.paywallFeatureAllFeatures, l10n.paywallFeatureZeroAds],
                         highlighted: true,
                       ),
                     ),
@@ -117,14 +118,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 ),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  label: 'Go Ad-Free — \$0.99/mo',
+                  label: l10n.paywallPurchaseButton,
                   isLoading: _isPurchasing,
                   onPressed: () => _purchase(context),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: () => _restore(context),
-                  child: const Text('Restore Purchases'),
+                  child: Text(l10n.paywallRestorePurchases),
                 ),
               ],
             ),
