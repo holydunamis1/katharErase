@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../generated/l10n/app_localizations.dart';
+
 /// Global error handling wired up in main.dart (Phase 6, File 47).
 ///
-/// Architecture rule: every third-party call gets try/catch with a graceful
-/// non-crashing fallback. This file is the last-resort net for anything
-/// that slips through — it must never itself throw, and must never assume
-/// a device debugger is attached (developer is phone-only, no DevTools).
+/// Architecture rule: every third-party call gets try/catch with a
+/// graceful non-crashing fallback. This file is the last-resort net for
+/// anything that slips through — it must never itself throw, and must
+/// never assume a device debugger is attached (developer is phone-only,
+/// no DevTools).
 class AppErrorHandler {
   AppErrorHandler._();
 
@@ -14,10 +17,6 @@ class AppErrorHandler {
   static void init() {
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
-      // In debug builds this still prints to console (visible in CI debug
-      // APK logcat). In release builds there is intentionally no crash
-      // reporting SDK wired up per Section 1 (zero backend) — errors are
-      // caught here purely to prevent a hard crash, not to phone home.
       if (kReleaseMode) {
         // Swallow in release: ErrorWidget.builder below shows the recovery UI.
       }
@@ -35,13 +34,41 @@ class _FullScreenErrorRecovery extends StatelessWidget {
   final FlutterErrorDetails details;
 
   // Bracket placeholder, matching the convention already established in
-  // Section 1a (e.g. [YOUR_ADMOB_BANNER_ANDROID]) — no support email exists
-  // yet (Section 1a shows Support URL as Pending), so no plausible-looking
-  // value is invented here.
+  // Section 1a (e.g. [YOUR_ADMOB_BANNER_ANDROID]) — no support email
+  // exists yet (Section 1a shows Support URL as Pending), so no
+  // plausible-looking value is invented here.
   static const String _supportEmail = '[YOUR_SUPPORT_EMAIL]';
+
+  /// Localization retrofit note: this widget can render before
+  /// MaterialApp/Localizations is mounted (e.g. an error during app.dart's
+  /// own build), in which case AppLocalizations.of(context) itself throws.
+  /// Unlike every other retrofitted file, this is a legitimate case for a
+  /// genuine hardcoded-English fallback — the alternative is the crash
+  /// recovery UI itself crashing, which defeats its entire purpose.
+  ({String title, String body, String goBack, String report}) _strings(
+    BuildContext context,
+  ) {
+    try {
+      final l10n = AppLocalizations.of(context);
+      return (
+        title: l10n.errorScreenTitle,
+        body: l10n.errorScreenBody,
+        goBack: l10n.errorScreenGoBack,
+        report: l10n.errorScreenReportEmail(_supportEmail),
+      );
+    } catch (e) {
+      return (
+        title: 'Something went wrong',
+        body: 'Try again, or restart the app if this keeps happening.',
+        goBack: 'Go back',
+        report: 'Report via $_supportEmail',
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final strings = _strings(context);
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
@@ -52,36 +79,31 @@ class _FullScreenErrorRecovery extends StatelessWidget {
             children: [
               const Icon(Icons.error_outline, size: 48),
               const SizedBox(height: 16),
-              const Text(
-                'Something went wrong',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              Text(
+                strings.title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Try again, or restart the app if this keeps happening.',
-                textAlign: TextAlign.center,
-              ),
+              Text(strings.body, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () {
-                  // Pop back to a known-good route rather than retrying the
-                  // exact same broken build — matches "no feature blocked"
-                  // philosophy: recovery, not a dead end.
                   Navigator.of(context).maybePop();
                 },
-                child: const Text('Go back'),
+                child: Text(strings.goBack),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () {
-                  // Email report link — no in-app crash SDK per zero-backend
-                  // rule. Actual mailto: launch wired in Phase 4/5 via
-                  // url_launcher-equivalent once that dependency is added;
-                  // left as a labeled action here since Phase 1 has no
-                  // navigation/launch capability yet.
+                  // Email report link — no in-app crash SDK per zero-
+                  // backend rule. Actual mailto: launch can be wired via
+                  // url_launcher (added Phase 5, Gap 10) now that it's
+                  // available — left as a labeled action here since this
+                  // file predates that dependency; a small follow-up
+                  // could call launchUrl(Uri(scheme: 'mailto', ...)).
                 },
-                child: Text('Report via $_supportEmail'),
+                child: Text(strings.report),
               ),
             ],
           ),
