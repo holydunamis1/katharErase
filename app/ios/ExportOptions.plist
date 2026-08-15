@@ -1,1 +1,23 @@
-
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>teamID</key>
+    <!-- Pending — Section 1a shows Apple Team ID as "Pending". Bracket
+         placeholder, not a fabricated value; fill in once enrolled in the
+         Apple Developer Program / Small Business Program. -->
+    <string>[YOUR_TEAM_ID]</string>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>compileBitcode</key>
+    <false/>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>destination</key>
+    <string>export</string>
+</dict>
+</plist>
