@@ -121,5 +121,11 @@
   "errorScreenBody": "Try again, or restart the app if this keeps happening.",
   "errorScreenGoBack": "Go back",
   "errorScreenReportEmail": "Report via {email}",
-  "@errorScreenReportEmail": {"placeholders": {"email": {"type": "String"}}}
+  "@errorScreenReportEmail": {"placeholders": {"email": {"type": "String"}}},
+
+  "unsupportedTitle": "Device Not Supported",
+  "unsupportedNoCameraMessage": "This device doesn't have a camera available.",
+  "unsupportedLowMemoryMessage": "This device doesn't have enough memory to run KatharErase's editor reliably.",
+  "unsupportedManualImportHint": "You can still import a photo from your gallery and use the manual brush tool.",
+  "unsupportedUseGalleryButton": "Import from Gallery"
 }
