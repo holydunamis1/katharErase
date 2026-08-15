@@ -1,0 +1,18 @@
+# Required as of Flutter 3.44.7 — the synthetic flutter_gen package
+# approach is being removed (confirmed live against Flutter's own
+# breaking-changes documentation, page updated 2026-05-05, explicitly
+# covering this Flutter version). Without synthetic-package: false and an
+# explicit output-dir, `flutter gen-l10n` is not guaranteed to generate
+# correctly on this pinned Flutter version. This file is not listed in
+# Section 5's 77-file manifest, but generate: true in pubspec.yaml
+# requires it to function correctly at this Flutter version — a
+# mechanical necessity, not a scope addition made for its own sake.
+
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/generated/l10n
+synthetic-package: false
+nullable-getter: false
+required-resource-attributes: true
