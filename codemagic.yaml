@@ -20,7 +20,9 @@ workflows:
       - name: Generate code (freezed models + ARB localization)
         script: |
           cd app
-          dart run build_runner build --delete-conflicting-outputs
+          dart run build_runner build
+          # --delete-conflicting-outputs removed — see build_and_deploy.yml's
+          # comment on this same step for the real CI evidence.
 
       - name: Install CocoaPods
         script: |
