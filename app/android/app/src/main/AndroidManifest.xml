@@ -1,1 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!--
+        maxSdkVersion corrected to 29, not 28 as originally specified in
+        Section 5, File 56 — gal's own current documentation states
+        WRITE_EXTERNAL_STORAGE is required for API <= 29 specifically
+        (Gap 14, live-verified during Phase 7), not 28. Android >29
+        grants gallery write access by default without this permission.
+    -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    <!-- No READ_MEDIA_VIDEO — app has no video import/export features. -->
+
+    <!--
+        Gap 15 addition (Phase 7, live-verified): url_launcher (added
+        Phase 5 for Privacy Policy / Support / Rate App links) requires
+        explicit package-visibility declaration on Android 11+ (API 30+),
+        or canLaunchUrl/launchUrl can silently fail. Not present in
+        Section 5's original manifest spec since url_launcher wasn't yet
+        a dependency when that spec was written.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mailto" />
+        </intent>
+    </queries>
+
+    <application
+        android:label="KatharErase"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
+        <!--
+            requestLegacyExternalStorage="true" — Gap 14 addition
+            (Phase 7, live-verified): gal's own documentation states this
+            is required for saving to an album specifically on API 29.
+            Not present in Section 5's original manifest spec at all.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+
+        <!--
+            AdMob App ID — REQUIRED by google_mobile_ads or the app will
+            crash on ad SDK init. Section 1a shows "AdMob — Android app
+            entry" as Pending. Bracket placeholder, not a fabricated ID —
+            this is a hard blocker for any build that actually initializes
+            AdMob (ad_service.dart, Phase 2) until the real dashboard
+            entry exists.
+        -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="[YOUR_ADMOB_ANDROID_APP_ID]" />
+    </application>
+</manifest>
