@@ -27,13 +27,17 @@ jobs:
         working-directory: app
 
       - name: Generate code (freezed models + ARB localization)
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: dart run build_runner build
         working-directory: app
-        # Note: flutter gen-l10n (producing lib/generated/l10n/
-        # app_localizations.dart from lib/l10n/app_en.arb, per l10n.yaml)
-        # runs automatically as part of `flutter pub get` / `flutter build`
-        # when generate: true is set in pubspec.yaml — no separate step
-        # needed here.
+        # --delete-conflicting-outputs removed from this command: real CI
+        # output confirmed "These options have been removed and were
+        # ignored" on build_runner 2.15.1 (resolved via pub get). Deletion
+        # of conflicting outputs appears to be default behavior now,
+        # given the flag was purely ignored rather than erroring — but
+        # that's inferred from the warning's wording, not independently
+        # confirmed. If a future CI run hits an "Asset already exists" /
+        # conflicting-output error, that's the next real signal to act on,
+        # not something to guess a workaround for now.
 
       - name: CI gate — no stub implementations
         run: |
