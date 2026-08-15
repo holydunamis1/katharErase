@@ -92,7 +92,7 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
   Future<void> _onCropped(CropResult result) async {
     final l10n = AppLocalizations.of(context);
     switch (result) {
-      case CropResult.success(:final croppedImage):
+      case CropSuccess(:final croppedImage):
         try {
           final tempDir = await StorageService.instance.getTempDirectoryPath();
           final outPath = p.join(
@@ -110,13 +110,13 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
             ToastNotification.show(context, message: l10n.cropSaveFailed, type: ToastType.error);
           }
         }
-      case CropResult.error(:final error):
+      case CropFailure(:final cause):
         if (mounted) {
           setState(() => _isProcessing = false);
           ToastNotification.show(context, message: l10n.cropFailed, type: ToastType.error);
         }
         // ignore: avoid_print
-        print('Crop failed: $error');
+        print('Crop failed: $cause');
     }
   }
 
