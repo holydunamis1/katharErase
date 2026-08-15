@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
 import '../core/utils/constants.dart';
+import '../generated/l10n/app_localizations.dart';
 
 /// Brush size slider (1-50px), Erase/Restore toggle, opacity slider.
 /// Controls image_edit_provider's currentBrushSizePx/currentBrushIsRestore/
@@ -15,6 +16,7 @@ class BrushControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ImageEditProvider>(context, listen: false);
+    final l10n = AppLocalizations.of(context);
 
     return ValueListenableBuilder<EditableImageState>(
       valueListenable: provider,
@@ -28,16 +30,16 @@ class BrushControls extends StatelessWidget {
                 children: [
                   Expanded(
                     child: SegmentedButton<bool>(
-                      segments: const [
+                      segments: [
                         ButtonSegment(
                           value: false,
-                          label: Text('Erase'),
-                          icon: Icon(Icons.remove_circle_outline),
+                          label: Text(l10n.brushErase),
+                          icon: const Icon(Icons.remove_circle_outline),
                         ),
                         ButtonSegment(
                           value: true,
-                          label: Text('Restore'),
-                          icon: Icon(Icons.add_circle_outline),
+                          label: Text(l10n.brushRestore),
+                          icon: const Icon(Icons.add_circle_outline),
                         ),
                       ],
                       selected: {state.currentBrushIsRestore},
@@ -49,7 +51,7 @@ class BrushControls extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('Brush Size', style: Theme.of(context).textTheme.labelMedium),
+              Text(l10n.brushSizeLabel, style: Theme.of(context).textTheme.labelMedium),
               Slider(
                 value: state.currentBrushSizePx.clamp(
                   kBrushSizeMinPx,
@@ -59,7 +61,7 @@ class BrushControls extends StatelessWidget {
                 max: kBrushSizeMaxPx,
                 onChanged: provider.setBrushSize,
               ),
-              Text('Opacity', style: Theme.of(context).textTheme.labelMedium),
+              Text(l10n.brushOpacityLabel, style: Theme.of(context).textTheme.labelMedium),
               Slider(
                 value: state.currentBrushOpacity.clamp(0.0, 1.0),
                 min: 0.0,

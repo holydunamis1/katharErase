@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
+import '../generated/l10n/app_localizations.dart';
 import 'before_after_toggle.dart';
 import 'icon_button_48.dart';
 
@@ -22,6 +23,7 @@ class BottomToolbar extends StatelessWidget {
     return ValueListenableBuilder<EditableImageState>(
       valueListenable: provider,
       builder: (context, state, _) {
+        final l10n = AppLocalizations.of(context);
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
@@ -29,23 +31,23 @@ class BottomToolbar extends StatelessWidget {
             children: [
               IconButton48(
                 icon: Icons.undo,
-                tooltip: 'Undo',
+                tooltip: l10n.toolbarUndo,
                 onPressed: provider.canUndo ? provider.undo : null,
               ),
               IconButton48(
                 icon: Icons.redo,
-                tooltip: 'Redo',
+                tooltip: l10n.toolbarRedo,
                 onPressed: provider.canRedo ? provider.redo : null,
               ),
               IconButton48(
                 icon: Icons.restart_alt,
-                tooltip: 'Reset',
+                tooltip: l10n.toolbarReset,
                 onPressed: () => _confirmReset(context, provider),
               ),
               const BeforeAfterToggle(),
               IconButton48(
                 icon: Icons.ios_share,
-                tooltip: 'Export',
+                tooltip: l10n.toolbarExport,
                 onPressed: onExport,
               ),
             ],
@@ -61,21 +63,20 @@ class BottomToolbar extends StatelessWidget {
     BuildContext context,
     ImageEditProvider provider,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reset edits?'),
-        content: const Text(
-          'This clears your manual brush strokes. This cannot be undone.',
-        ),
+        title: Text(l10n.resetConfirmTitle),
+        content: Text(l10n.resetConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.resetConfirmCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Reset'),
+            child: Text(l10n.resetConfirmConfirm),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/utils/extensions.dart';
+import '../generated/l10n/app_localizations.dart';
 
 /// First launch: "Tap Camera or Gallery to start." Shown on home_screen
 /// (Phase 5) when there are no recent exports yet.
@@ -9,6 +10,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -22,7 +24,7 @@ class EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Tap Camera or Gallery to start.',
+              l10n.homeEmptyStateMessage,
               style: context.textStyles.bodyLarge?.copyWith(
                 color: context.colors.onSurfaceVariant,
               ),

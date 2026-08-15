@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
 import '../core/utils/constants.dart';
+import '../generated/l10n/app_localizations.dart';
 
 /// Grid: White, Transparent, Black, Color picker circle, Blur slider
 /// (0-25px).
@@ -11,9 +12,7 @@ import '../core/utils/constants.dart';
 /// Color picker note: no color-picker package exists in Section 6's
 /// dependency manifest. Rather than add one, this uses a preset swatch
 /// grid built from Flutter's own widgets — a conservative scope choice,
-/// not a full HSV-wheel picker. If the developer wants a true custom
-/// color wheel later, that's a real scope addition to flag and decide on
-/// its own, not something to add silently here.
+/// not a full HSV-wheel picker.
 const List<Color> _presetSwatches = [
   Color(0xFFEF4444),
   Color(0xFFF59E0B),
@@ -33,6 +32,7 @@ class BackgroundSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ImageEditProvider>(context, listen: false);
+    final l10n = AppLocalizations.of(context);
 
     return ValueListenableBuilder<EditableImageState>(
       valueListenable: provider,
@@ -47,13 +47,13 @@ class BackgroundSelector extends StatelessWidget {
                 child: Row(
                   children: [
                     _swatchButton(
-                      label: 'White',
+                      label: l10n.backgroundWhite,
                       color: Colors.white,
                       selected: state.backgroundType == BackgroundType.white,
                       onTap: () => provider.setBackgroundType(BackgroundType.white),
                     ),
                     _swatchButton(
-                      label: 'Transparent',
+                      label: l10n.backgroundTransparent,
                       color: null,
                       selected:
                           state.backgroundType == BackgroundType.transparent,
@@ -61,7 +61,7 @@ class BackgroundSelector extends StatelessWidget {
                           provider.setBackgroundType(BackgroundType.transparent),
                     ),
                     _swatchButton(
-                      label: 'Black',
+                      label: l10n.backgroundBlack,
                       color: Colors.black,
                       selected: state.backgroundType == BackgroundType.black,
                       onTap: () => provider.setBackgroundType(BackgroundType.black),
@@ -77,13 +77,10 @@ class BackgroundSelector extends StatelessWidget {
                   ],
                 ),
               ),
-              if (state.backgroundType == BackgroundType.gaussianBlur ||
-                  state.backgroundType == BackgroundType.solidColor) ...[
-                const SizedBox(height: 8),
-              ],
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  Text('Blur', style: Theme.of(context).textTheme.labelMedium),
+                  Text(l10n.backgroundBlurLabel, style: Theme.of(context).textTheme.labelMedium),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Slider(
