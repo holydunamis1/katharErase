@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 
@@ -25,8 +26,34 @@ class ExportException implements Exception {
 /// (confirmed live — it's decode-only for that format). See pubspec.yaml
 /// comment on flutter_image_compress for why this dependency exists.
 class ExportService {
-  ExportService._();
+  ExportService._({
+    Future<Uint8List> Function(Uint8List pngBytes, int quality)? webpEncoder,
+  }) : _webpEncoder = webpEncoder ?? _defaultWebpEncoder;
+
   static final ExportService instance = ExportService._();
+
+  /// Test-only constructor — injects a fake WEBP encoder so unit tests
+  /// can exercise compositeAndExport's WEBP path (including the quality
+  /// parameter and the JPG fallback branch) without a real platform
+  /// channel, which throws MissingPluginException in a standard
+  /// `flutter test` unit test. See test/export_service_test.dart.
+  @visibleForTesting
+  ExportService.forTesting(
+    Future<Uint8List> Function(Uint8List pngBytes, int quality) webpEncoder,
+  ) : _webpEncoder = webpEncoder;
+
+  static Future<Uint8List> _defaultWebpEncoder(
+    Uint8List pngBytes,
+    int quality,
+  ) {
+    return FlutterImageCompress.compressWithList(
+      pngBytes,
+      format: CompressFormat.webp,
+      quality: quality,
+    );
+  }
+
+  final Future<Uint8List> Function(Uint8List pngBytes, int quality) _webpEncoder;
 
   /// Main entry point: takes the original image bytes, the mask produced
   /// by segmentation_service.dart / brush edits, and the current editor
@@ -260,21 +287,18 @@ class ExportService {
   }
 
   /// WEBP has no encoder in package:image (confirmed decode-only). Route
-  /// through flutter_image_compress instead, encoding the already-
-  /// composited PNG bytes. Falls back to JPG on UnsupportedError per the
-  /// package's own documented pattern — WEBP requires a working platform
-  /// encoder, not guaranteed on every device.
+  /// through the injectable _webpEncoder (flutter_image_compress by
+  /// default) instead, encoding the already-composited PNG bytes. Falls
+  /// back to JPG on UnsupportedError per flutter_image_compress's own
+  /// documented pattern — WEBP requires a working platform encoder, not
+  /// guaranteed on every device.
   Future<Uint8List> _encodeWebpWithFallback(
     img.Image composited, {
     required int quality,
   }) async {
     final pngBytes = Uint8List.fromList(img.encodePng(composited));
     try {
-      final webpBytes = await FlutterImageCompress.compressWithList(
-        pngBytes,
-        format: CompressFormat.webp,
-        quality: quality,
-      );
+      final webpBytes = await _webpEncoder(pngBytes, quality);
       if (webpBytes.isEmpty) {
         throw const ExportException(
           'WEBP encode returned empty result, falling back to JPG.',

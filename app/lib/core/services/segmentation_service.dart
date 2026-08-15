@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../utils/constants.dart';
@@ -17,6 +18,36 @@ class SegmentationException implements Exception {
   @override
   String toString() => 'SegmentationException: $message'
       '${cause != null ? ' (cause: $cause)' : ''}';
+}
+
+/// Minimal seam covering only what SegmentationService actually needs
+/// from tflite_flutter's Interpreter — added during Phase 8 so
+/// test/segmentation_service_test.dart can inject a fake implementation
+/// without loading a real .tflite model or touching native FFI code
+/// (impossible in a standard `flutter test` unit test, and Section 14's
+/// real model file doesn't exist yet regardless).
+abstract class TfliteInterpreterAdapter {
+  List<int> getInputShape();
+  List<int> getOutputShape();
+  void run(Object input, Object output);
+  void close();
+}
+
+class _RealTfliteInterpreterAdapter implements TfliteInterpreterAdapter {
+  _RealTfliteInterpreterAdapter(this._interpreter);
+  final Interpreter _interpreter;
+
+  @override
+  List<int> getInputShape() => _interpreter.getInputTensor(0).shape;
+
+  @override
+  List<int> getOutputShape() => _interpreter.getOutputTensor(0).shape;
+
+  @override
+  void run(Object input, Object output) => _interpreter.run(input, output);
+
+  @override
+  void close() => _interpreter.close();
 }
 
 /// Path B (default): loads assets/models/segmentation.tflite via
@@ -37,16 +68,38 @@ class SegmentationException implements Exception {
 /// quality for Feature 1's non-person subjects.
 ///
 /// This service intentionally queries the interpreter's actual input/
-/// output tensor shapes at runtime (getInputTensor/getOutputTensor)
-/// rather than hardcoding dimensions like 320x320 — the exact U2-Net
-/// export's tensor shape is not yet known/committed, and hardcoding a
-/// guessed shape would silently produce wrong results instead of a
-/// clear error if the real model differs.
+/// output tensor shapes at runtime (getInputShape/getOutputShape) rather
+/// than hardcoding dimensions like 320x320 — the exact U2-Net export's
+/// tensor shape is not yet known/committed, and hardcoding a guessed
+/// shape would silently produce wrong results instead of a clear error
+/// if the real model differs.
 class SegmentationService {
-  SegmentationService._();
+  SegmentationService._({
+    Future<TfliteInterpreterAdapter> Function(String assetPath)? loader,
+  }) : _loader = loader ?? _defaultLoader;
+
   static final SegmentationService instance = SegmentationService._();
 
-  Interpreter? _interpreter;
+  /// Test-only constructor — injects a fake loader so unit tests can
+  /// exercise loadModel()/runInference()'s logic (success path, failure
+  /// path, exception wrapping, mask-length correctness) without a real
+  /// model file or platform channel. See
+  /// test/segmentation_service_test.dart.
+  @visibleForTesting
+  SegmentationService.forTesting(
+    Future<TfliteInterpreterAdapter> Function(String assetPath) loader,
+  ) : _loader = loader;
+
+  static Future<TfliteInterpreterAdapter> _defaultLoader(
+    String assetPath,
+  ) async {
+    final interpreter = await Interpreter.fromAsset(assetPath);
+    return _RealTfliteInterpreterAdapter(interpreter);
+  }
+
+  final Future<TfliteInterpreterAdapter> Function(String assetPath) _loader;
+
+  TfliteInterpreterAdapter? _interpreter;
   List<int>? _inputShape;
   List<int>? _outputShape;
 
@@ -57,11 +110,9 @@ class SegmentationService {
   Future<void> loadModel() async {
     if (_interpreter != null) return;
     try {
-      final interpreter = await Interpreter.fromAsset(
-        'assets/models/segmentation.tflite',
-      );
-      _inputShape = interpreter.getInputTensor(0).shape;
-      _outputShape = interpreter.getOutputTensor(0).shape;
+      final interpreter = await _loader('assets/models/segmentation.tflite');
+      _inputShape = interpreter.getInputShape();
+      _outputShape = interpreter.getOutputShape();
       _interpreter = interpreter;
     } catch (e) {
       throw SegmentationException(
