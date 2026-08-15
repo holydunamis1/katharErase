@@ -2,7 +2,13 @@ targets:
   $default:
     builders:
       freezed:
-        generate: true
+        # Corrected against real CI output: 'generate' is not a valid key
+        # in this schema — the error named the actual supported keys
+        # (enabled, generate_for, options, dev_options, release_options).
+        # This was a genuine mistake from Phase 1, not a version-drift
+        # issue like the l10n.yaml fixes — the correct key was always
+        # 'enabled', I just wrote the wrong one.
+        enabled: true
         options:
           # Matches architecture rule: models are immutable, copyWith,
           # toJson/fromJson, no hand-rolled equality.
@@ -10,7 +16,7 @@ targets:
           equal: true
           to_string: true
       json_serializable:
-        generate: true
+        enabled: true
         options:
           explicit_to_json: true
           field_rename: snake
