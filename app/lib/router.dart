@@ -8,6 +8,7 @@ import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/paywall_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/unsupported_device_screen.dart';
 
 /// GoRouter routes: / (home), /camera, /crop, /editor, /settings,
 /// /paywall — per Section 5, File 49.
@@ -73,6 +74,16 @@ GoRouter buildRouter(SettingsProvider settingsProvider) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/unsupported-device',
+        // Gap-style addition, same reasoning as /onboarding above: not
+        // in Section 49's literal route list, but unsupported_device_
+        // screen.dart (File 72) needs a real navigation target.
+        builder: (context, state) {
+          final reason = state.extra as UnsupportedReason? ?? UnsupportedReason.noCamera;
+          return UnsupportedDeviceScreen(reason: reason);
+        },
       ),
       GoRoute(
         path: '/paywall',
