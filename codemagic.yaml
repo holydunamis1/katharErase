@@ -1,0 +1,73 @@
+workflows:
+  ios-workflow:
+    name: "KatharErase iOS Build"
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      # Live-verified Aug 2026 during Phase 1: current stable is 3.44.7
+      # (was 3.24.0 in the original build plan, flagged stale there).
+      flutter: "3.44.7"
+      xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: "com.zdmgold.katharerase"
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          cd app
+          flutter pub get
+
+      - name: Generate code (freezed models + ARB localization)
+        script: |
+          cd app
+          dart run build_runner build --delete-conflicting-outputs
+
+      - name: Install CocoaPods
+        script: |
+          cd app/ios
+          pod install --repo-update
+
+      - name: Set Xcode Strip Style to Non-Global Symbols
+        script: |
+          # Section 13 risk register: tflite_flutter's own repo documents
+          # that `flutter build ipa` can throw "Failed to lookup symbol"
+          # errors on release IPA builds due to Xcode's default symbol
+          # stripping. STRIP_STYLE is a real Xcode build setting
+          # (values: all / non-global / debugging) and Flutter's generated
+          # Release.xcconfig is a real file already included in the Xcode
+          # project's build settings — appending an override here avoids
+          # a manual Xcode GUI step that wouldn't survive a fresh checkout
+          # on this phone-only, CI-only workflow. NOT independently
+          # live-verified against Xcode's current documentation this pass
+          # — if the release IPA still shows symbol-lookup failures on a
+          # physical iPhone (Section 15's required check), treat this
+          # step as the first thing to re-examine, not assume-correct.
+          cd app/ios
+          echo "STRIP_STYLE = non-global" >> Flutter/Release.xcconfig
+
+      - name: CI gate — no stub implementations
+        script: |
+          cd app
+          grep -r "throw UnimplementedError" lib/ && exit 1 || exit 0
+
+      - name: Analyze
+        script: |
+          cd app
+          flutter analyze
+
+      - name: Build IPA
+        script: |
+          cd app
+          flutter build ipa --release \
+            --export-options-plist=ios/ExportOptions.plist
+
+    artifacts:
+      - app/build/ios/ipa/*.ipa
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_KEY_ID
+        api_issuer: $APP_STORE_CONNECT_ISSUER_ID
+        api_private_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        submit_to_testflight: true
+        submit_to_app_store: false
