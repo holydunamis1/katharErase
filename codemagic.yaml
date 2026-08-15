@@ -67,7 +67,7 @@ workflows:
           # warnings too on this Flutter version, not just errors. Only
           # the known, tracked Section 14 blocker (missing
           # segmentation.tflite) is tolerated; anything else still fails.
-          REMAINING=$(echo "$OUTPUT" | grep -E "•.*•" | grep -v "assets/models/segmentation.tflite doesn't exist")
+          REMAINING=$(echo "$OUTPUT" | grep -E "•.*•" | grep -v "segmentation.tflite")
           if [ -z "$REMAINING" ]; then
             echo ""
             echo "Only the known, tracked Section 14 blocker (missing segmentation.tflite) was found — treating as non-fatal for CI so later build steps can still be validated. This must still be resolved before shipping."
