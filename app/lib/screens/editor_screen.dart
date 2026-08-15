@@ -15,6 +15,7 @@ import '../widgets/brush_controls.dart';
 import '../widgets/bottom_toolbar.dart';
 import '../widgets/edge_feather_slider.dart';
 import '../widgets/editor_canvas.dart';
+import '../widgets/fallback_manual_editor.dart';
 import '../widgets/loading_overlay.dart';
 import 'export_bottom_sheet.dart';
 
@@ -31,6 +32,13 @@ enum _EditorTab { auto, manual, background }
 /// diagram places those five actions at the bottom only, matching File 37
 /// exactly, and gives the top bar just [Back] + the three-tab segmented
 /// control. Section 3's diagram is treated as authoritative here.
+///
+/// Fallback note: when autoSegmentationFailed is true, this screen
+/// renders FallbackManualEditor (File 71) INSTEAD of the normal tab
+/// switcher + canvas — not an inline banner layered on top of an
+/// otherwise-normal Auto/Background-accessible UI. File 71's spec is
+/// explicitly "Brush canvas only," so the tab switcher itself is hidden
+/// in that state, not just decorated with a warning.
 class EditorScreen extends StatefulWidget {
   const EditorScreen({super.key, required this.imagePath});
 
@@ -93,62 +101,57 @@ class _EditorScreenState extends State<EditorScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: SegmentedButton<_EditorTab>(
-          segments: [
-            ButtonSegment(value: _EditorTab.auto, label: Text(l10n.editorTabAuto)),
-            ButtonSegment(value: _EditorTab.manual, label: Text(l10n.editorTabManual)),
-            ButtonSegment(
-              value: _EditorTab.background,
-              label: Text(l10n.editorTabBackground),
-            ),
-          ],
-          selected: {_tab},
-          onSelectionChanged: (s) => setState(() => _tab = s.first),
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                const EditorCanvas(),
-                ValueListenableBuilder<EditableImageState>(
-                  valueListenable: _provider,
-                  builder: (context, state, _) =>
-                      LoadingOverlay(visible: state.isProcessing),
-                ),
-                ValueListenableBuilder<EditableImageState>(
-                  valueListenable: _provider,
-                  builder: (context, state, _) {
-                    if (!state.autoSegmentationFailed) {
-                      return const SizedBox.shrink();
-                    }
-                    return Positioned(
-                      top: 8,
-                      left: 8,
-                      right: 8,
-                      child: Material(
-                        color: Theme.of(context).colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Text(l10n.editorSegmentationFailedMessage),
-                        ),
-                      ),
-                    );
-                  },
+        title: ValueListenableBuilder<EditableImageState>(
+          valueListenable: _provider,
+          builder: (context, state, _) {
+            // Tab switcher hidden entirely in the fallback state — see
+            // class doc. A plain title reads better than a segmented
+            // control the user can't meaningfully use anyway.
+            if (state.autoSegmentationFailed) {
+              return Text(l10n.editorTabManual);
+            }
+            return SegmentedButton<_EditorTab>(
+              segments: [
+                ButtonSegment(value: _EditorTab.auto, label: Text(l10n.editorTabAuto)),
+                ButtonSegment(value: _EditorTab.manual, label: Text(l10n.editorTabManual)),
+                ButtonSegment(
+                  value: _EditorTab.background,
+                  label: Text(l10n.editorTabBackground),
                 ),
               ],
-            ),
-          ),
-          switch (_tab) {
-            _EditorTab.auto => const EdgeFeatherSlider(),
-            _EditorTab.manual => const BrushControls(),
-            _EditorTab.background => const BackgroundSelector(),
+              selected: {_tab},
+              onSelectionChanged: (s) => setState(() => _tab = s.first),
+            );
           },
-          BottomToolbar(onExport: _openExportSheet),
-          const AdBannerSlot(personalized: false),
-        ],
+        ),
+      ),
+      body: ValueListenableBuilder<EditableImageState>(
+        valueListenable: _provider,
+        builder: (context, state, _) {
+          return Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    if (state.autoSegmentationFailed)
+                      const FallbackManualEditor()
+                    else
+                      const EditorCanvas(),
+                    LoadingOverlay(visible: state.isProcessing),
+                  ],
+                ),
+              ),
+              if (!state.autoSegmentationFailed)
+                switch (_tab) {
+                  _EditorTab.auto => const EdgeFeatherSlider(),
+                  _EditorTab.manual => const BrushControls(),
+                  _EditorTab.background => const BackgroundSelector(),
+                },
+              BottomToolbar(onExport: _openExportSheet),
+              const AdBannerSlot(personalized: false),
+            ],
+          );
+        },
       ),
     );
   }

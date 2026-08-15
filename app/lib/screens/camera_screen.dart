@@ -9,6 +9,7 @@ import '../widgets/app_scaffold.dart';
 import '../widgets/icon_button_48.dart';
 import '../widgets/loading_overlay.dart';
 import '../widgets/toast_notification.dart';
+import 'unsupported_device_screen.dart';
 
 /// CameraPreview + white overlay guide rectangle + capture button + flash
 /// toggle + gallery shortcut.
@@ -66,10 +67,12 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
-        setState(() {
-          _initializing = false;
-          _errorType = _CameraErrorType.noCameraFound;
-        });
+        if (mounted) {
+          context.pushReplacement(
+            '/unsupported-device',
+            extra: UnsupportedReason.noCamera,
+          );
+        }
         return;
       }
       final controller = CameraController(
@@ -145,7 +148,6 @@ class _CameraScreenState extends State<CameraScreen> {
       _CameraErrorType.permissionPermanentlyDenied =>
         l10n.cameraPermissionPermanentlyDenied,
       _CameraErrorType.permissionRestricted => l10n.cameraPermissionRestricted,
-      _CameraErrorType.noCameraFound => l10n.cameraNoCameraFound,
       _CameraErrorType.startFailed => l10n.cameraStartFailed,
     };
   }
@@ -251,6 +253,5 @@ enum _CameraErrorType {
   permissionDenied,
   permissionPermanentlyDenied,
   permissionRestricted,
-  noCameraFound,
   startFailed,
 }
