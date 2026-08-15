@@ -41,6 +41,19 @@ class StorageService {
 
   Database? _db;
 
+  /// Eagerly opens/creates the database at app startup, so any first-use
+  /// failure surfaces during main.dart's init sequence (wrapped there in
+  /// try/catch) rather than silently on the first export/history read.
+  /// Matches File 47's "sqflite init" startup responsibility.
+  Future<void> initialize() async {
+    try {
+      await _database;
+    } catch (e) {
+      // Swallow here too — main.dart's graceful-degradation wrapper is
+      // the real safety net; storage failures shouldn't block app launch.
+    }
+  }
+
   Future<Database> get _database async {
     final existing = _db;
     if (existing != null) return existing;
