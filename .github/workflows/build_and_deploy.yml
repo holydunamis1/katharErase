@@ -79,24 +79,22 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
-        # Confirmed real, actively maintained action (verified directly
-        # via its GitHub repo: v4.0.1 released April 2026, 290 stars, MIT
-        # license) — not a guess. Switching to this from a hand-rolled
-        # PATH+sdkmanager approach because that approach's actual failure
-        # ("Failed to find package 'platforms;android-37'") wasn't a PATH
-        # problem (that part worked — sdkmanager ran, fetched the remote
-        # repository) but most likely a stale cmdline-tools version
-        # bundled in the runner image not yet recognizing a platform
-        # released in June 2026 (confirmed real and released — Android 17
-        # /API 37 is a genuine stable release, not an unreleased/guessed
-        # version number). This action downloads its own fresh cmdline-
-        # tools rather than using the runner's pre-installed version,
-        # directly targeting that likely cause. Confirmed: this action is
-        # real and current. Not yet confirmed: whether this resolves the
-        # platform lookup — that's what the next CI run actually tests.
+        # Kept even after stepping back from compileSdk 37 to 36 (see
+        # build.gradle, File 54, for that reasoning) — ensures a working,
+        # current sdkmanager regardless of what the runner has
+        # pre-installed, at negligible cost.
 
-      - name: Install Android SDK Platform 37
-        run: sdkmanager "platforms;android-37"
+      - name: Install Android SDK Platform 36
+        run: sdkmanager "platforms;android-36"
+        # Targets 36, not 37 — see build.gradle's comment for the full
+        # reasoning. Two consecutive attempts at platforms;android-37
+        # failed with "Failed to find package" even via a verified fresh
+        # cmdline-tools action, consistent with Android 17/API 37's
+        # platform package only being available through Android Studio's
+        # preview channel per Google's own current setup docs, not the
+        # standard channel sdkmanager queries in CI. SDK 36 is what 12 of
+        # the 13 plugins in Flutter's original build output actually
+        # required, and has been stable for a full release cycle.
 
       - name: Build release AAB
         run: |
