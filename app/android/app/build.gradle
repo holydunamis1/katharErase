@@ -17,15 +17,28 @@ def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '
 
 android {
     namespace "com.zdmgold.katharerase"
-    // compileSdk raised from 35 to 37 — not a guess, this is the exact
-    // fix Flutter's own build output specified: permission_handler_android
-    // requires compiling against Android SDK 37 (the highest requirement
-    // among all installed plugins; compileSdk is backward compatible, so
-    // raising it doesn't affect apps targeting a lower runtime API).
-    compileSdk 37
-    // Explicit NDK version, exact value Flutter's own build output
-    // specified — the jni plugin (a transitive dependency, likely via
-    // tflite_flutter's native bindings) requires this exact version.
+    // compileSdk 36, not 37 — a considered step-back, not another CI-
+    // mechanics guess. Two consecutive attempts to install
+    // platforms;android-37 failed with "Failed to find package" even via
+    // a verified fresh-cmdline-tools action, which is consistent with a
+    // real finding: Google's own Android 17 SDK setup page
+    // (developer.android.com/about/versions/17/setup-sdk, last updated
+    // 2026-08-14) is titled "Set up the Android 17 SDK using the latest
+    // Android Studio preview" — API 37's platform package may only be
+    // available through Android Studio's preview/canary channel, not
+    // the standard channel sdkmanager queries by default in CI. Rather
+    // than keep guessing at channel flags to chase a possibly-preview-
+    // only SDK, stepping back to SDK 36: of the 13 plugins Flutter's
+    // build output listed, 12 explicitly stated SDK 36 was sufficient
+    // (only permission_handler_android asked for 37), and Android 16/
+    // API 36 has been stable for a full release cycle, unlike 37. If
+    // permission_handler_android genuinely fails to compile at 36,
+    // that will produce a new, specific, diagnosable compiler error —
+    // a real signal to act on, not something to guess around now.
+    compileSdk 36
+    // NDK version left as previously confirmed (Flutter's own build
+    // output stated this exact value explicitly) — unrelated to the
+    // compileSdk question above.
     ndkVersion "28.2.13676358"
 
     compileOptions {
