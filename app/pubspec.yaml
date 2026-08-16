@@ -42,7 +42,7 @@ dependencies:
   google_mobile_ads: ^9.0.0
   in_app_purchase: ^3.3.0
   app_tracking_transparency: ^2.0.6+1
-  permission_handler: ^13.0.1
+  permission_handler: ^12.0.0
 
   # --- Localization ---
   # flutter_localizations from Flutter 3.44.7 pins intl to 0.20.2.
