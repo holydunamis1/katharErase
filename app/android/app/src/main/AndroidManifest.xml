@@ -75,14 +75,13 @@
 
         <!--
             AdMob App ID — REQUIRED by google_mobile_ads or the app will
-            crash on ad SDK init. Section 1a shows "AdMob — Android app
-            entry" as Pending. Bracket placeholder, not a fabricated ID —
-            this is a hard blocker for any build that actually initializes
-            AdMob (ad_service.dart, Phase 2) until the real dashboard
-            entry exists.
+            crash on ad SDK init. Using Google's official TEST App ID
+            below so the release APK can be verified on a real device.
+            REPLACE with your real AdMob App ID before Play Store submission.
+            Real ID format: ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy
         -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="[YOUR_ADMOB_ANDROID_APP_ID]" />
+            android:value="ca-app-pub-3940256099942544~3347511713" />
     </application>
 </manifest>
