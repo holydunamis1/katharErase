@@ -1,1 +1,47 @@
+// This file was entirely missing from the repo until now — that's the
+// real root cause of the "Build failed due to use of deleted Android v1
+// embedding" CI error. That error message is Flutter's tooling's
+// catch-all when it can't find a valid, complete modern Android project
+// structure — in our case because settings.gradle (which declares
+// Flutter's own Gradle plugin loader) never existed at all, not because
+// of any actual v1/v2 embedding manifest content issue.
+//
+// Version pins cross-verified from three independent live sources (not a
+// single guess):
+// 1. Flutter's own docs confirm AGP 9.0's built-in-Kotlin mode requires
+//    Flutter 3.47+ — we're pinned to 3.44.7, so that path is not
+//    available; must stay on AGP 8.x with a manually-applied Kotlin
+//    Gradle Plugin.
+// 2. Kotlin 2.3.0's own release docs state its supported AGP range is
+//    8.2.2-8.13.0.
+// 3. A real-world walkthrough confirms AGP 8.7.3 + Gradle 8.9 working
+//    together specifically at compileSdk 35 (our pinned value, File 54).
+// AGP 8.7.3 falls inside Kotlin's confirmed-compatible range, Kotlin
+// 2.1.0 comfortably satisfies Flutter 3.44's documented minimum KGP
+// requirement of 2.0.0.
 
+pluginManagement {
+    def flutterSdkPath = {
+        def properties = new Properties()
+        file("local.properties").withInputStream { properties.load(it) }
+        def flutterSdkPath = properties.getProperty("flutter.sdk")
+        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+        return flutterSdkPath
+    }()
+
+    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+    id "com.android.application" version "8.7.3" apply false
+    id "org.jetbrains.kotlin.android" version "2.1.0" apply false
+}
+
+include ":app"
