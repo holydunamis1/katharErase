@@ -1,1 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shown while Flutter initializes, before the first frame renders.
+         Referenced by AndroidManifest.xml's android:theme and by the
+         io.flutter.embedding.android.NormalTheme meta-data. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
 
+    <!-- Applied once Flutter draws its first frame. -->
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+</resources>
