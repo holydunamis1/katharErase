@@ -17,6 +17,9 @@
 -keepattributes InnerClasses
 -keepattributes EnclosingMethod
 
+# --- Google Play Core (referenced by Flutter deferred components, not used) ---
+-dontwarn com.google.android.play.core.**
+
 # --- Google Mobile Ads (Section 5, File 55 original requirement) ---
 -keep class com.google.android.gms.ads.** { *; }
 -keep public class com.google.android.gms.ads.mediation.** { *; }
