@@ -5,9 +5,23 @@
 # assets/logo_1024.png, not assets/logo.svg — flutter_launcher_icons also
 # requires a raster (PNG) source image, not SVG. See File 59's comment
 # for the full reasoning; not repeating it here beyond this pointer.
+#
+# NAMING BUG FIXED: this was set to "launcher_icon", which would have
+# generated mipmap/launcher_icon.png — but AndroidManifest.xml (File 56)
+# references @mipmap/ic_launcher. This mismatch was never caught until a
+# real CI build attempt failed with "AAPT: error: resource mipmap/
+# ic_launcher not found", because this tool had never actually been run
+# (it requires Flutter, which isn't available in the environment that
+# built this repo — an interim set of correctly-named ic_launcher.png
+# files was hand-generated directly from assets/logo_1024.png and
+# committed at android/app/src/main/res/mipmap-*dpi/ic_launcher.png so
+# the build isn't blocked. If this tool is run for real later (e.g. by
+# the developer locally, to also produce the iOS icon set and proper
+# adaptive-icon XML), the "ic_launcher" name below now matches what it
+# will actually need to produce.
 
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: "ic_launcher"
   ios: true
   image_path: "assets/logo_1024.png"
   min_sdk_android: 26 # matches app-wide minSdk (build.gradle, File 54) — tflite_flutter's real floor
