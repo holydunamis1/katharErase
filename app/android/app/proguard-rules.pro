@@ -4,10 +4,24 @@
 # (android/app/build.gradle, File 54).
 # ============================================================
 
-# --- google_mobile_ads (Section 5, File 55 original requirement) ---
+# --- Flutter framework ---
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class io.flutter.util.** { *; }
+-keep class io.flutter.view.** { *; }
+-keep class io.flutter.** { *; }
+-keep class io.flutter.plugins.** { *; }
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes Exceptions
+-keepattributes InnerClasses
+-keepattributes EnclosingMethod
+
+# --- Google Mobile Ads (Section 5, File 55 original requirement) ---
 -keep class com.google.android.gms.ads.** { *; }
 -keep public class com.google.android.gms.ads.mediation.** { *; }
 -keep public class com.google.ads.** { *; }
+-dontwarn com.google.android.gms.ads.**
 
 # --- in_app_purchase (Section 5, File 55 original requirement) ---
 -keep class com.android.vending.billing.** { *; }
