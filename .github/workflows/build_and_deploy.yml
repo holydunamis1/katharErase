@@ -77,6 +77,31 @@ jobs:
           fi
         working-directory: app
 
+      - name: Configure Android SDK environment
+        run: |
+          # Sourced directly from GitHub's own actions/runner-images repo
+          # (issue #13469: "Android SDK platforms and build tools older
+          # than version 34 will be removed" — the runner-images
+          # maintainers' own documented workaround for exactly this
+          # scenario). Confirmed via that source: sdkmanager exists on
+          # the runner at $ANDROID_SDK_ROOT/cmdline-tools/latest/bin but
+          # is NOT on PATH by default — this step adds it. My previous
+          # attempt skipped this and assumed sdkmanager was already
+          # callable, which was the actual gap, not just an untested
+          # guess about SDK content.
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+
+      - name: Install Android SDK Platform 37
+        run: |
+          # Addresses the actual fatal build error: "Failed to find
+          # Platform SDK with path: platforms;android-37" — compileSdk 37
+          # (build.gradle, File 54) is required by permission_handler_
+          # android per Flutter's own build output, but that platform
+          # isn't in the runner's default pruned SDK image.
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-37"
+
       - name: Build release AAB
         run: |
           flutter build appbundle --release \
