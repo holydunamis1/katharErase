@@ -109,8 +109,7 @@ jobs:
         run: |
           cd app
           flutter clean
-          cd android
-          ./gradlew clean
+          rm -rf android/.gradle android/app/build
 
       - name: Build release AAB
         run: |
@@ -239,8 +238,7 @@ jobs:
         run: |
           cd app
           flutter clean
-          cd android
-          ./gradlew clean
+          rm -rf android/.gradle android/app/build
 
       - name: Build debug APK
         run: flutter build apk --debug --target-platform android-arm64
