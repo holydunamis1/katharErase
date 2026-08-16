@@ -89,7 +89,10 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            // Fallback to debug signing when release keystore is absent (CI).
+            // Before store submission, inject key.properties via CI secrets
+            // and this line will automatically use the release keystore.
+            signingConfig signingConfigs.release.storeFile ? signingConfigs.release : signingConfigs.debug
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
