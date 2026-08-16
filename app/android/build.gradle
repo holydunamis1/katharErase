@@ -7,25 +7,19 @@ allprojects {
 
 rootProject.buildDir = "../build"
 subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-subprojects {
-    afterEvaluate { project ->
-        if (project.plugins.hasPlugin("com.android.application") || project.plugins.hasPlugin("com.android.library")) {
+    afterEvaluate {
+        if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
             tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { kotlinTask ->
-                def sourceCompatibility = project.android.compileOptions.sourceCompatibility?.toString() ?: "1.8"
+                def sourceCompatibility = android.compileOptions.sourceCompatibility?.toString() ?: "1.8"
                 def jvmTarget = kotlinTask.kotlinOptions.jvmTarget ?: ""
                 if (sourceCompatibility != jvmTarget) {
                     kotlinTask.kotlinOptions.jvmTarget = sourceCompatibility
-                    println "INFO: Updated jvmTarget for ${project.name} to ${sourceCompatibility}"
                 }
             }
         }
     }
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register("clean", Delete) {
