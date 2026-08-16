@@ -1,1 +1,8 @@
-
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder until flutter_native_splash:create runs (Phase 9, File 59)
+     against assets/logo_1024.png — this is a minimal, honest white
+     background matching Section 7's light bgPrimary token (#FFFFFF), not
+     a fake branded splash. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/white" />
+</layer-list>
