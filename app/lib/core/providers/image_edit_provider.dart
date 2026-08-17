@@ -15,12 +15,14 @@ class ImageEditProvider extends ValueNotifier<EditableImageState> {
     );
   }
 
-  Future<void> autoSegment(Float32List preprocessedInput) async {
+  Future<void> autoSegment(Uint8List preprocessedInput) async {
     value = value.copyWith(isProcessing: true, autoSegmentationFailed: false);
     try {
       await SegmentationService.instance.loadModel();
       final maskBytes = await SegmentationService.instance.runInference(
-        preprocessedInput,
+        Float32List.fromList(
+          preprocessedInput.map((b) => b / 255.0).toList(),
+        ),
       );
       value = value.copyWith(
         maskBytes: maskBytes,
