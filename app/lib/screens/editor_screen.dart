@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as img;
 import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
@@ -21,24 +23,6 @@ import 'export_bottom_sheet.dart';
 
 enum _EditorTab { auto, manual, background }
 
-/// The core screen. Top bar: back + segmented control [Auto/Manual/
-/// Background]. editor_canvas fills the remaining space. Bottom:
-/// bottom_toolbar (Undo/Redo/Reset/Before-After/Export per Section 3's
-/// diagram — see note below). Bottom-most: ad_banner_slot.
-///
-/// Resolution note: Section 5's File 43 table entry says the top bar has
-/// "back, undo, redo, before/after, export," which would duplicate
-/// bottom_toolbar.dart (File 37) exactly. Section 3's detailed flow
-/// diagram places those five actions at the bottom only, matching File 37
-/// exactly, and gives the top bar just [Back] + the three-tab segmented
-/// control. Section 3's diagram is treated as authoritative here.
-///
-/// Fallback note: when autoSegmentationFailed is true, this screen
-/// renders FallbackManualEditor (File 71) INSTEAD of the normal tab
-/// switcher + canvas — not an inline banner layered on top of an
-/// otherwise-normal Auto/Background-accessible UI. File 71's spec is
-/// explicitly "Brush canvas only," so the tab switcher itself is hidden
-/// in that state, not just decorated with a warning.
 class EditorScreen extends StatefulWidget {
   const EditorScreen({super.key, required this.imagePath});
 
@@ -63,17 +47,31 @@ class _EditorScreenState extends State<EditorScreen> {
     final size = await _decodeImageSize(widget.imagePath);
     _provider.loadImage(widget.imagePath, size);
 
-    // Feature 1: auto-run segmentation on load. Preprocessing (resize to
-    // the model's input tensor shape, normalize) happens here rather than
-    // in the provider itself, since it needs the decoded image dimensions
-    // this screen already has. Simplification note: this passes raw
-    // decoded bytes; a production pass would resize/normalize to the
-    // model's actual input tensor shape (queried via
-    // SegmentationService.instance.inputShape after loadModel()) before
-    // calling autoSegment — left as the next concrete step once Section
-    // 14's real model file exists to test the exact preprocessing against.
-    final bytes = await File(widget.imagePath).readAsBytes();
-    await _provider.autoSegment(bytes);
+    try {
+      final fileBytes = await File(widget.imagePath).readAsBytes();
+      final original = img.decodeImage(fileBytes);
+      if (original == null) {
+        _provider.value = _provider.value.copyWith(autoSegmentationFailed: true);
+        return;
+      }
+
+      // Resize to 256x256 (MediaPipe Selfie Segmentation input)
+      final resized = img.copyResize(original, width: 256, height: 256);
+      final inputBuffer = Float32List(256 * 256 * 3);
+      var idx = 0;
+      for (var y = 0; y < 256; y++) {
+        for (var x = 0; x < 256; x++) {
+          final pixel = resized.getPixel(x, y);
+          inputBuffer[idx++] = pixel.r / 255.0;
+          inputBuffer[idx++] = pixel.g / 255.0;
+          inputBuffer[idx++] = pixel.b / 255.0;
+        }
+      }
+
+      await _provider.autoSegment(inputBuffer);
+    } catch (e) {
+      _provider.value = _provider.value.copyWith(autoSegmentationFailed: true);
+    }
   }
 
   Future<ui.Size> _decodeImageSize(String path) async {
@@ -104,9 +102,6 @@ class _EditorScreenState extends State<EditorScreen> {
         title: ValueListenableBuilder<EditableImageState>(
           valueListenable: _provider,
           builder: (context, state, _) {
-            // Tab switcher hidden entirely in the fallback state — see
-            // class doc. A plain title reads better than a segmented
-            // control the user can't meaningfully use anyway.
             if (state.autoSegmentationFailed) {
               return Text(l10n.editorTabManual);
             }
