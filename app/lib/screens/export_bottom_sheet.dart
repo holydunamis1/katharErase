@@ -18,11 +18,6 @@ import '../widgets/loading_overlay.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/toast_notification.dart';
 
-/// Modal bottom sheet: format toggle, quality slider, resize toggle
-/// (Original / 1:1 / 4:5 / 9:16 / Custom width/height), Save to Gallery,
-/// Share. Dismisses to home. Interstitial may show after success (Free
-/// user only, capped at 120s per Section 9 — enforced by ad_service.dart,
-/// this sheet just triggers the attempt).
 class ExportBottomSheet extends StatefulWidget {
   const ExportBottomSheet({super.key});
 
@@ -48,14 +43,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
   bool get _showQualitySlider =>
       _format == ExportFormat.jpg || _format == ExportFormat.webp;
 
-  /// Simple, dependency-free unique ID — avoids adding a `uuid` package
-  /// for something this trivial. Timestamp + a small random suffix is
-  /// sufficient uniqueness for locally-generated export job IDs/filenames
-  /// (no cross-device or multi-user collision risk per Section 1's
-  /// zero-backend, single-device architecture).
   String _generateId() {
     final now = DateTime.now().microsecondsSinceEpoch;
-    final rand = (now * 2654435761) % 0xFFFFFFFF; // cheap deterministic mix
+    final rand = (now * 2654435761) % 0xFFFFFFFF;
     return '$now-${rand.toRadixString(16)}';
   }
 
