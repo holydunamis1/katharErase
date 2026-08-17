@@ -4,14 +4,6 @@ import '../generated/l10n/app_localizations.dart';
 import 'brush_controls.dart';
 import 'editor_canvas.dart';
 
-/// Shown when auto-seg unavailable: "Your device doesn't support
-/// automatic background removal. Use the manual eraser below." Brush
-/// canvas only — stricter than editor_screen.dart's normal tabbed view
-/// (Auto/Manual/Background all available). This widget is what
-/// editor_screen.dart renders INSTEAD of the normal tab switcher when
-/// EditableImageState.autoSegmentationFailed is true, not an addition
-/// alongside it — Feature 1's fallback message plus a UI that can't
-/// accidentally lead the user back to a broken Auto tab.
 class FallbackManualEditor extends StatelessWidget {
   const FallbackManualEditor({super.key});
 
