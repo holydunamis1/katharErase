@@ -9,21 +9,6 @@ import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
 import '../core/utils/constants.dart';
 
-/// InteractiveViewer -> CustomPaint. Displays original image, mask
-/// composite, background layer. Handles zoom/pan.
-///
-/// This is where image_edit_provider's deferred _recomputeMaskFromHistory
-/// no-op actually gets resolved (see that file's doc comment) — brush
-/// strokes are replayed onto a live alpha buffer here, where CustomPainter
-/// access makes that possible.
-///
-/// Coordinate space note: this widget sizes its CustomPaint/GestureDetector
-/// to exactly match the image's native pixel dimensions (state.imageSize)
-/// and lets InteractiveViewer handle all zoom/pan scaling around that.
-/// Flutter's hit-testing reports GestureDetector.localPosition already
-/// relative to the transformed child's own untransformed coordinate space,
-/// so no manual matrix inversion against the TransformationController is
-/// needed for brush points to land in the correct image-pixel location.
 class EditorCanvas extends StatefulWidget {
   const EditorCanvas({super.key});
 
@@ -33,16 +18,10 @@ class EditorCanvas extends StatefulWidget {
 
 class _EditorCanvasState extends State<EditorCanvas> {
   late final ImageEditProvider _provider;
-  final TransformationController _transformController =
-      TransformationController();
+  final TransformationController _transformController = TransformationController();
 
   ui.Image? _originalImage;
   String? _decodedForPath;
-
-  ui.Image? _maskImage;
-  int _maskCacheHistoryLength = -1;
-  int _maskCacheHistoryIndex = -2;
-  Uint8List? _maskCacheBaseBytes;
 
   List<Offset> _activeStrokePoints = [];
 
@@ -66,7 +45,6 @@ class _EditorCanvasState extends State<EditorCanvas> {
     if (state.originalPath != null && state.originalPath != _decodedForPath) {
       _decodeOriginalImage(state.originalPath!);
     }
-    _maybeRebuildMask(state);
   }
 
   Future<void> _decodeOriginalImage(String path) async {
@@ -78,95 +56,24 @@ class _EditorCanvasState extends State<EditorCanvas> {
       if (!mounted) return;
       setState(() => _originalImage = frame.image);
     } catch (e) {
-      // Decode failure: leave _originalImage null. editor_screen.dart
-      // (Phase 5) is responsible for surfacing this via error_handler's
-      // recovery UI if the image genuinely can't be loaded — this widget
-      // just doesn't render a broken image rather than crashing.
-      // ignore: avoid_print
       print('Failed to decode original image: $e');
     }
   }
 
-  /// Rebuilds the live alpha-mask ui.Image only when the underlying
-  /// buffer actually changed (base maskBytes identity, or brush history
-  /// length/index) — avoids redundant async image decoding on every
-  /// unrelated state change (e.g. zoom, background color).
-  Future<void> _maybeRebuildMask(EditableImageState state) async {
-    final baseChanged = !identical(state.maskBytes, _maskCacheBaseBytes);
-    final historyChanged =
-        state.brushHistory.length != _maskCacheHistoryLength ||
-            state.historyIndex != _maskCacheHistoryIndex;
-    if (!baseChanged && !historyChanged) return;
-    if (state.imageSize == null) return;
-
-    _maskCacheBaseBytes = state.maskBytes;
-    _maskCacheHistoryLength = state.brushHistory.length;
-    _maskCacheHistoryIndex = state.historyIndex;
-
-    final width = state.imageSize!.width.round();
-    final height = state.imageSize!.height.round();
-    if (width <= 0 || height <= 0) return;
-
-    final alpha = _buildAlphaBuffer(state, width, height);
-    final rgba = Uint8List(width * height * 4);
-    for (var i = 0; i < width * height; i++) {
-      rgba[i * 4] = 255;
-      rgba[i * 4 + 1] = 255;
-      rgba[i * 4 + 2] = 255;
-      rgba[i * 4 + 3] = alpha[i];
-    }
-
-    final descriptor = await ui.ImmutableBuffer.fromUint8List(rgba);
-    final imgDescriptor = ui.ImageDescriptor.raw(
-      descriptor,
-      width: width,
-      height: height,
-      pixelFormat: ui.PixelFormat.rgba8888,
-    );
-    final codec = await imgDescriptor.instantiateCodec();
-    final frame = await codec.getNextFrame();
-    if (!mounted) return;
-    setState(() => _maskImage = frame.image);
+  void _onPanStart(DragStartDetails details) {
+    if (_provider.value.showBeforeAfter) return;
+    _activeStrokePoints = [details.localPosition];
   }
 
-  /// Base buffer: state.maskBytes if auto-segmentation has run, else
-  /// fully-opaque (255 everywhere) so manual-only brushing (Feature 2
-  /// without ever running Feature 1) still has a mask to paint into.
-  /// Then replays brushHistory[0..historyIndex] on top — erase strokes
-  /// subtract alpha scaled by stroke.opacity, restore strokes add it,
-  /// both clamped to [0, 255].
-  Uint8List _buildAlphaBuffer(EditableImageState state, int width, int height) {
-    final buffer = Uint8List(width * height);
-    if (state.maskBytes != null && state.maskBytes!.length == buffer.length) {
-      buffer.setAll(0, state.maskBytes!);
-    } else {
-      buffer.fillRange(0, buffer.length, 255);
-    }
+  void _onPanUpdate(DragUpdateDetails details) {
+    if (_provider.value.showBeforeAfter) return;
+    _activeStrokePoints = [..._activeStrokePoints, details.localPosition];
+  }
 
-    for (var i = 0; i <= state.historyIndex && i < state.brushHistory.length; i++) {
-      final stroke = state.brushHistory[i];
-      final radius = (stroke.brushSizePx / 2).round().clamp(1, 200);
-      final delta = (255 * stroke.opacity).round().clamp(0, 255);
-      for (final point in stroke.points) {
-        final cx = point.dx.round();
-        final cy = point.dy.round();
-        for (var dy = -radius; dy <= radius; dy++) {
-          final y = cy + dy;
-          if (y < 0 || y >= height) continue;
-          for (var dx = -radius; dx <= radius; dx++) {
-            if (dx * dx + dy * dy > radius * radius) continue; // circle mask
-            final x = cx + dx;
-            if (x < 0 || x >= width) continue;
-            final idx = y * width + x;
-            final current = buffer[idx];
-            buffer[idx] = stroke.isRestore
-                ? (current + delta).clamp(0, 255)
-                : (current - delta).clamp(0, 255);
-          }
-        }
-      }
-    }
-    return buffer;
+  void _onPanEnd(DragEndDetails details) {
+    if (_provider.value.showBeforeAfter || _activeStrokePoints.isEmpty) return;
+    _provider.applyBrushStroke(_activeStrokePoints);
+    _activeStrokePoints = [];
   }
 
   @override
@@ -185,30 +92,22 @@ class _EditorCanvasState extends State<EditorCanvas> {
           minScale: kZoomMin,
           maxScale: kZoomMax,
           child: GestureDetector(
-            onPanStart: (details) {
-              if (state.showBeforeAfter) return;
-              _activeStrokePoints = [details.localPosition];
-            },
-            onPanUpdate: (details) {
-              if (state.showBeforeAfter) return;
-              _activeStrokePoints = [..._activeStrokePoints, details.localPosition];
-            },
-            onPanEnd: (_) {
-              if (state.showBeforeAfter || _activeStrokePoints.isEmpty) return;
-              _provider.applyBrushStroke(_activeStrokePoints);
-              _activeStrokePoints = [];
-            },
+            behavior: HitTestBehavior.opaque,
+            onPanStart: _onPanStart,
+            onPanUpdate: _onPanUpdate,
+            onPanEnd: _onPanEnd,
             child: SizedBox(
               width: size.width,
               height: size.height,
               child: CustomPaint(
                 painter: _EditorPainter(
                   original: _originalImage!,
-                  mask: state.showBeforeAfter ? null : _maskImage,
+                  maskBytes: state.maskBytes,
                   backgroundType: state.backgroundType,
                   bgColor: state.bgColor,
                   blurRadius: state.blurRadius,
                   edgeFeather: state.edgeFeather,
+                  imageSize: size,
                 ),
               ),
             ),
@@ -222,26 +121,27 @@ class _EditorCanvasState extends State<EditorCanvas> {
 class _EditorPainter extends CustomPainter {
   _EditorPainter({
     required this.original,
-    required this.mask,
+    required this.maskBytes,
     required this.backgroundType,
     required this.bgColor,
     required this.blurRadius,
     required this.edgeFeather,
+    required this.imageSize,
   });
 
   final ui.Image original;
-  final ui.Image? mask;
+  final Uint8List? maskBytes;
   final BackgroundType backgroundType;
   final Color? bgColor;
   final double blurRadius;
   final double edgeFeather;
+  final Size imageSize;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
 
-    if (mask == null) {
-      // Before/After (showing original) or mask not built yet.
+    if (maskBytes == null) {
       canvas.drawImageRect(
         original,
         Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
@@ -251,8 +151,6 @@ class _EditorPainter extends CustomPainter {
       return;
     }
 
-    // Background layer, drawn first so the masked subject composites on
-    // top of it.
     switch (backgroundType) {
       case BackgroundType.white:
         canvas.drawRect(rect, Paint()..color = Colors.white);
@@ -285,13 +183,6 @@ class _EditorPainter extends CustomPainter {
         break;
     }
 
-    // Masked subject, composited via saveLayer + BlendMode.dstIn against
-    // the mask image, with edge feather approximated by blurring the
-    // mask itself during this blend (real-time preview, matching
-    // Feature 11's "real-time preview" requirement — final export applies
-    // the authoritative version via export_service.dart's package:image
-    // gaussianBlur on the mask buffer, this is the fast live-preview
-    // equivalent using Skia's native ImageFilter.blur instead).
     canvas.saveLayer(rect, Paint());
     canvas.drawImageRect(
       original,
@@ -307,8 +198,8 @@ class _EditorPainter extends CustomPainter {
       );
     }
     canvas.drawImageRect(
-      mask!,
-      Rect.fromLTWH(0, 0, mask!.width.toDouble(), mask!.height.toDouble()),
+      original,
+      Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
       rect,
       maskPaint,
     );
@@ -333,7 +224,7 @@ class _EditorPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _EditorPainter oldDelegate) {
     return oldDelegate.original != original ||
-        oldDelegate.mask != mask ||
+        oldDelegate.maskBytes != maskBytes ||
         oldDelegate.backgroundType != backgroundType ||
         oldDelegate.bgColor != bgColor ||
         oldDelegate.blurRadius != blurRadius ||
