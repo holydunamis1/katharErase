@@ -56,72 +56,22 @@ class _EditorScreenState extends State<EditorScreen> {
         return;
       }
 
-      // U2-Net preprocessing: 320x320, ImageNet normalization
-      final resized = img.copyResize(original, width: 320, height: 320);
-      final inputBuffer = Float32List(320 * 320 * 3);
+      // MediaPipe Selfie Segmentation preprocessing: 256x256, [-1, 1] normalization
+      final resized = img.copyResize(original, width: 256, height: 256);
+      final inputBuffer = Float32List(256 * 256 * 3);
       var idx = 0;
-      for (var y = 0; y < 320; y++) {
-        for (var x = 0; x < 320; x++) {
+      for (var y = 0; y < 256; y++) {
+        for (var x = 0; x < 256; x++) {
           final pixel = resized.getPixel(x, y);
-          inputBuffer[idx++] = ((pixel.r / 255.0) - 0.485) / 0.229;
-          inputBuffer[idx++] = ((pixel.g / 255.0) - 0.456) / 0.224;
-          inputBuffer[idx++] = ((pixel.b / 255.0) - 0.406) / 0.225;
+          inputBuffer[idx++] = (pixel.r / 127.5) - 1.0;
+          inputBuffer[idx++] = (pixel.g / 127.5) - 1.0;
+          inputBuffer[idx++] = (pixel.b / 127.5) - 1.0;
         }
       }
 
       await _provider.autoSegment(inputBuffer.buffer.asUint8List());
-
-      // ================= TEMPORARY DEBUG CODE — START =================
-      if (mounted) {
-        final inShape = SegmentationService.instance.inputShape;
-        final outShape = SegmentationService.instance.outputShape;
-        final lastErr = SegmentationService.instance.lastError;
-
-        showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('DEBUG: Model Status'),
-            content: SingleChildScrollView(
-              child: Text(
-                'inputShape: $inShape\n'
-                'outputShape: $outShape\n'
-                'autoSegmentationFailed: ${_provider.value.autoSegmentationFailed}\n\n'
-                'lastError:\n${lastErr ?? "None"}',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-      // ================== TEMPORARY DEBUG CODE — END ==================
     } catch (e) {
       _provider.value = _provider.value.copyWith(autoSegmentationFailed: true);
-      if (mounted) {
-        final lastErr = SegmentationService.instance.lastError;
-        showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('DEBUG: Error before segmentation'),
-            content: SingleChildScrollView(
-              child: Text(
-                'Catch error: $e\n\n'
-                'SegmentationService lastError:\n${lastErr ?? "None"}',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
     }
   }
 
