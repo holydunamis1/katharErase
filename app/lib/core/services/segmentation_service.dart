@@ -115,10 +115,12 @@ class SegmentationService {
       final outputLength = outputShape.reduce((a, b) => a * b);
 
       // Reshape flat 1D input into the multi-dimensional structure required by the model
-      final reshapedInput = inputBuffer.reshape(inputShape);
+      // Added <dynamic> to satisfy the strict inference_failure_on_function_invocation lint
+      final reshapedInput = inputBuffer.reshape<dynamic>(inputShape);
 
       // Initialize a multi-dimensional array to hold the model output
-      final reshapedOutput = List.filled(outputLength, 0.0).reshape(outputShape);
+      // Added <double> and <dynamic> to explicitly define types for the analyzer
+      final reshapedOutput = List<double>.filled(outputLength, 0.0).reshape<dynamic>(outputShape);
 
       // Run inference
       interpreter.run(reshapedInput, reshapedOutput);
