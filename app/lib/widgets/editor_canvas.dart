@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -67,26 +66,12 @@ class _EditorCanvasState extends State<EditorCanvas> {
     }
   }
 
-  /// FIX: maskBytes is a single-channel (1 byte/pixel) alpha buffer —
-  /// see image_edit_provider.dart's _recomputeMaskFromHistory(), which
-  /// builds Uint8List(width * height). The previous version of this
-  /// method declared pixelFormat: r8g8b8a8 (4 bytes/pixel) directly
-  /// against that 1-byte/pixel buffer — a hard size mismatch that threw
-  /// inside instantiateCodec()/getNextFrame() on every call, silently
-  /// caught below, leaving _maskImage null forever. This version expands
-  /// the single-channel buffer into real RGBA (white RGB + the mask
-  /// value as alpha) before constructing the image, so the declared
-  /// pixel format actually matches the data provided.
   Future<void> _updateMaskImage(Uint8List maskBytes) async {
     try {
       final width = _provider.value.imageSize?.width.round() ?? 0;
       final height = _provider.value.imageSize?.height.round() ?? 0;
       if (width <= 0 || height <= 0) return;
       if (maskBytes.length != width * height) {
-        // Defensive check: if this ever fires, the mask buffer's size
-        // doesn't match imageSize at all (a different bug from the one
-        // fixed here) — bail out cleanly rather than attempt a
-        // guaranteed-wrong expansion.
         debugPrint(
           'Mask buffer size mismatch: expected ${width * height}, got ${maskBytes.length}',
         );
@@ -202,7 +187,6 @@ class _EditorPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
 
-    // Draw background
     switch (backgroundType) {
       case BackgroundType.white:
         canvas.drawRect(rect, Paint()..color = Colors.white);
@@ -221,7 +205,6 @@ class _EditorPainter extends CustomPainter {
         break;
     }
 
-    // Draw original image with mask as alpha
     if (maskImage != null) {
       canvas.saveLayer(rect, Paint());
       canvas.drawImageRect(
@@ -245,7 +228,6 @@ class _EditorPainter extends CustomPainter {
       );
       canvas.restore();
     } else {
-      // No mask yet — show original image fully opaque
       canvas.drawImageRect(
         original,
         Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
