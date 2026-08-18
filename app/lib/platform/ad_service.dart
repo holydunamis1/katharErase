@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:flutter/foundation.dart' show debugPrint, kReleaseMode;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/utils/constants.dart';
@@ -39,7 +39,7 @@ class AdService {
     try {
       await MobileAds.instance.initialize();
     } catch (e) {
-      print('AdMob initialization failed: $e');
+      debugPrint('AdMob initialization failed: $e');
     }
   }
 
@@ -49,7 +49,7 @@ class AdService {
       final status = await AppTrackingTransparency.requestTrackingAuthorization();
       return status == TrackingStatus.authorized;
     } catch (e) {
-      print('ATT request failed: $e');
+      debugPrint('ATT request failed: $e');
       return false;
     }
   }
@@ -83,7 +83,7 @@ class AdService {
       await banner.load().timeout(const Duration(seconds: 10));
       return banner;
     } catch (e) {
-      print('Banner ad load failed or timed out: $e');
+      debugPrint('Banner ad load failed or timed out: $e');
       onFailed(
         banner,
         LoadAdError(0, 'internal', 'load threw or timed out: $e', null),
@@ -131,20 +131,20 @@ class AdService {
             if (!completer.isCompleted) completer.complete(true);
           },
           onAdFailedToLoad: (error) {
-            print('Interstitial load failed: $error');
+            debugPrint('Interstitial load failed: $error');
             if (!completer.isCompleted) completer.complete(false);
           },
         ),
       );
     } catch (e) {
-      print('Interstitial load threw: $e');
+      debugPrint('Interstitial load threw: $e');
       if (!completer.isCompleted) completer.complete(false);
     }
 
     return completer.future.timeout(
       const Duration(seconds: 10),
       onTimeout: () {
-        print('Interstitial load timed out — proceeding without an ad.');
+        debugPrint('Interstitial load timed out — proceeding without an ad.');
         return false;
       },
     );
