@@ -69,7 +69,7 @@ class _EditorScreenState extends State<EditorScreen> {
         }
       }
 
-      await _provider.autoSegment(inputBuffer);
+      await _provider.autoSegment(inputBuffer.buffer.asUint8List());
 
       // ================= TEMPORARY DEBUG CODE — START =================
       // This block does nothing except show a pop-up with the model's
