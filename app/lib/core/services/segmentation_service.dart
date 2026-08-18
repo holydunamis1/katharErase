@@ -55,7 +55,8 @@ class SegmentationService {
   static Future<TfliteInterpreterAdapter> _defaultLoader(
     String assetPath,
   ) async {
-    final interpreter = await Interpreter.fromAsset(assetPath);
+    final options = InterpreterOptions()..threads = 4;
+    final interpreter = await Interpreter.fromAsset(assetPath, options: options);
     return _RealTfliteInterpreterAdapter(interpreter);
   }
 
