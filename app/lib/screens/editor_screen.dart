@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
+import '../core/services/segmentation_service.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
@@ -55,22 +56,65 @@ class _EditorScreenState extends State<EditorScreen> {
         return;
       }
 
-      // Resize to 256x256 (MediaPipe Selfie Segmentation input)
-      final resized = img.copyResize(original, width: 256, height: 256);
-      final inputBuffer = Float32List(256 * 256 * 3);
+      // U2-Net preprocessing: 320x320, ImageNet normalization
+      final resized = img.copyResize(original, width: 320, height: 320);
+      final inputBuffer = Float32List(320 * 320 * 3);
       var idx = 0;
-      for (var y = 0; y < 256; y++) {
-        for (var x = 0; x < 256; x++) {
+      for (var y = 0; y < 320; y++) {
+        for (var x = 0; x < 320; x++) {
           final pixel = resized.getPixel(x, y);
-          inputBuffer[idx++] = pixel.r / 255.0;
-          inputBuffer[idx++] = pixel.g / 255.0;
-          inputBuffer[idx++] = pixel.b / 255.0;
+          inputBuffer[idx++] = ((pixel.r / 255.0) - 0.485) / 0.229;
+          inputBuffer[idx++] = ((pixel.g / 255.0) - 0.456) / 0.224;
+          inputBuffer[idx++] = ((pixel.b / 255.0) - 0.406) / 0.225;
         }
       }
 
       await _provider.autoSegment(inputBuffer);
+
+      // ================= TEMPORARY DEBUG CODE — START =================
+      // This block does nothing except show a pop-up with the model's
+      // real tensor shapes. Delete this whole block once you've reported
+      // the numbers back.
+      if (mounted) {
+        final inShape = SegmentationService.instance.inputShape;
+        final outShape = SegmentationService.instance.outputShape;
+        showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('DEBUG: Model shapes'),
+            content: Text(
+              'inputShape: $inShape\n'
+              'outputShape: $outShape\n'
+              'autoSegmentationFailed: ${_provider.value.autoSegmentationFailed}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      // ================== TEMPORARY DEBUG CODE — END ==================
     } catch (e) {
       _provider.value = _provider.value.copyWith(autoSegmentationFailed: true);
+      // TEMPORARY: also show errors that happen before autoSegment runs.
+      if (mounted) {
+        showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('DEBUG: Error before segmentation'),
+            content: Text('$e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 
