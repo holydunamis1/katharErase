@@ -7,13 +7,27 @@ allprojects {
 
 rootProject.buildDir = "../build"
 subprojects {
-    afterEvaluate {
-        if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
+    afterEvaluate { project ->
+        if (project.plugins.hasPlugin("com.android.application") || project.plugins.hasPlugin("com.android.library")) {
             tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { kotlinTask ->
-                def sourceCompatibility = android.compileOptions.sourceCompatibility?.toString() ?: "1.8"
+                def sourceCompatibility = project.android.compileOptions.sourceCompatibility?.toString() ?: "1.8"
                 def jvmTarget = kotlinTask.kotlinOptions.jvmTarget ?: ""
                 if (sourceCompatibility != jvmTarget) {
                     kotlinTask.kotlinOptions.jvmTarget = sourceCompatibility
+                }
+            }
+            
+            // Injects required TFLite asset compression overrides & NDK targets into all Android submodules
+            project.android {
+                aaptOptions {
+                    noCompress 'tflite'
+                }
+                if (project.plugins.hasPlugin("com.android.application")) {
+                    defaultConfig {
+                        ndk {
+                            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86_64'
+                        }
+                    }
                 }
             }
         }
