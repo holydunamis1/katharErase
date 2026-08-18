@@ -36,7 +36,7 @@ jobs:
         working-directory: app
 
       - name: Generate code (freezed models + ARB localization)
-        run: dart run build_runner build
+        run: dart run build_runner build --delete-conflicting-outputs
         working-directory: app
         # --delete-conflicting-outputs removed from this command: real CI
         # output confirmed "These options have been removed and were
