@@ -14,8 +14,8 @@ import '../generated/l10n/app_localizations.dart';
 import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/background_selector.dart';
-import '../widgets/brush_controls.dart';
 import '../widgets/bottom_toolbar.dart';
+import '../widgets/brush_controls.dart';
 import '../widgets/edge_feather_slider.dart';
 import '../widgets/editor_canvas.dart';
 import '../widgets/fallback_manual_editor.dart';
@@ -72,20 +72,22 @@ class _EditorScreenState extends State<EditorScreen> {
       await _provider.autoSegment(inputBuffer.buffer.asUint8List());
 
       // ================= TEMPORARY DEBUG CODE — START =================
-      // This block does nothing except show a pop-up with the model's
-      // real tensor shapes. Delete this whole block once you've reported
-      // the numbers back.
       if (mounted) {
         final inShape = SegmentationService.instance.inputShape;
         final outShape = SegmentationService.instance.outputShape;
+        final lastErr = SegmentationService.instance.lastError;
+
         showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('DEBUG: Model shapes'),
-            content: Text(
-              'inputShape: $inShape\n'
-              'outputShape: $outShape\n'
-              'autoSegmentationFailed: ${_provider.value.autoSegmentationFailed}',
+            title: const Text('DEBUG: Model Status'),
+            content: SingleChildScrollView(
+              child: Text(
+                'inputShape: $inShape\n'
+                'outputShape: $outShape\n'
+                'autoSegmentationFailed: ${_provider.value.autoSegmentationFailed}\n\n'
+                'lastError:\n${lastErr ?? "None"}',
+              ),
             ),
             actions: [
               TextButton(
@@ -99,13 +101,18 @@ class _EditorScreenState extends State<EditorScreen> {
       // ================== TEMPORARY DEBUG CODE — END ==================
     } catch (e) {
       _provider.value = _provider.value.copyWith(autoSegmentationFailed: true);
-      // TEMPORARY: also show errors that happen before autoSegment runs.
       if (mounted) {
+        final lastErr = SegmentationService.instance.lastError;
         showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('DEBUG: Error before segmentation'),
-            content: Text('$e'),
+            content: SingleChildScrollView(
+              child: Text(
+                'Catch error: $e\n\n'
+                'SegmentationService lastError:\n${lastErr ?? "None"}',
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
