@@ -104,21 +104,41 @@ class SegmentationService {
   /// Runs inference on a preprocessed input buffer and returns a raw mask.
   Future<Uint8List> runInference(Float32List inputBuffer) async {
     final interpreter = _interpreter;
-    if (interpreter == null) {
+    if (interpreter == null || _inputShape == null || _outputShape == null) {
       const err = 'Segmentation model not loaded. Call loadModel() first.';
       _lastError = err;
       throw const SegmentationException(err);
     }
     try {
+      final inputShape = _inputShape!;
       final outputShape = _outputShape!;
       final outputLength = outputShape.reduce((a, b) => a * b);
-      final output = Float32List(outputLength);
-      interpreter.run(inputBuffer, output);
 
+      // Reshape flat 1D input into the multi-dimensional structure required by the model
+      final reshapedInput = inputBuffer.reshape(inputShape);
+
+      // Initialize a multi-dimensional array to hold the model output
+      final reshapedOutput = List.filled(outputLength, 0.0).reshape(outputShape);
+
+      // Run inference
+      interpreter.run(reshapedInput, reshapedOutput);
+
+      // Recursively flatten the nested list back into a 1D Uint8List and quantize
       final maskBytes = Uint8List(outputLength);
-      for (var i = 0; i < outputLength; i++) {
-        maskBytes[i] = (output[i].clamp(0.0, 1.0) * 255).round();
+      int index = 0;
+
+      void flattenAndQuantize(dynamic element) {
+        if (element is List) {
+          for (var subElement in element) {
+            flattenAndQuantize(subElement);
+          }
+        } else if (element is num) {
+          maskBytes[index] = (element.clamp(0.0, 1.0) * 255).round();
+          index++;
+        }
       }
+
+      flattenAndQuantize(reshapedOutput);
       return maskBytes;
     } catch (e, stack) {
       _lastError = 'INFERENCE FAILURE: $e\n$stack';
