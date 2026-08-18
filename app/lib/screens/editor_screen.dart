@@ -55,16 +55,16 @@ class _EditorScreenState extends State<EditorScreen> {
         return;
       }
 
-      // MediaPipe Selfie Segmentation preprocessing: 256x256, [-1, 1] normalization
+      // MediaPipe Selfie Segmentation preprocessing: 256x256, [0, 1] normalization
       final resized = img.copyResize(original, width: 256, height: 256);
       final inputBuffer = Float32List(256 * 256 * 3);
       var idx = 0;
       for (var y = 0; y < 256; y++) {
         for (var x = 0; x < 256; x++) {
           final pixel = resized.getPixel(x, y);
-          inputBuffer[idx++] = (pixel.r / 127.5) - 1.0;
-          inputBuffer[idx++] = (pixel.g / 127.5) - 1.0;
-          inputBuffer[idx++] = (pixel.b / 127.5) - 1.0;
+          inputBuffer[idx++] = pixel.r / 255.0;
+          inputBuffer[idx++] = pixel.g / 255.0;
+          inputBuffer[idx++] = pixel.b / 255.0;
         }
       }
 
