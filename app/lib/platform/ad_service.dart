@@ -7,31 +7,31 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../core/utils/constants.dart';
 
+/// AdMob init, ATT request, banner/interstitial load-show, capping logic.
 class AdService {
   AdService._();
   static final AdService instance = AdService._();
 
   DateTime? _lastInterstitialShownAt;
 
-  /// Returns the appropriate banner ad unit ID.
   /// Falls back to test IDs if production IDs still contain bracket
-  /// placeholders (Section 1a pending items).
+  /// placeholders (Section 1a pending items) — kept from the k3 rewrite,
+  /// a genuine improvement: prevents AdMob SDK crashing on an invalid
+  /// (still-a-placeholder) ad unit ID string in a release build before
+  /// real AdMob dashboard IDs exist.
   String get bannerAdUnitId {
     final isIos = Platform.isIOS;
     final prodId = isIos ? kProdBannerAdUnitIdIos : kProdBannerAdUnitIdAndroid;
     final testId = isIos ? kTestBannerAdUnitIdIos : kTestBannerAdUnitIdAndroid;
-    // Use production ID only in release mode AND only if it's a real ID
-    // (no bracket placeholders). Otherwise fall back to test IDs to
-    // prevent AdMob SDK crash on invalid ad unit format.
     return (kReleaseMode && !prodId.contains('[')) ? prodId : testId;
   }
 
-  /// Returns the appropriate interstitial ad unit ID.
-  /// Same fallback logic as bannerAdUnitId.
   String get interstitialAdUnitId {
     final isIos = Platform.isIOS;
-    final prodId = isIos ? kProdInterstitialAdUnitIdIos : kProdInterstitialAdUnitIdAndroid;
-    final testId = isIos ? kTestInterstitialAdUnitIdIos : kTestInterstitialAdUnitIdAndroid;
+    final prodId =
+        isIos ? kProdInterstitialAdUnitIdIos : kProdInterstitialAdUnitIdAndroid;
+    final testId =
+        isIos ? kTestInterstitialAdUnitIdIos : kTestInterstitialAdUnitIdAndroid;
     return (kReleaseMode && !prodId.contains('[')) ? prodId : testId;
   }
 
@@ -76,16 +76,32 @@ class AdService {
       ),
     );
     try {
-      await banner.load();
+      // Timeout added — same reasoning as maybeLoadAndShowInterstitial
+      // below: a banner ad slot must be able to give up and collapse
+      // rather than leave the widget waiting forever if AdMob's SDK
+      // never calls back.
+      await banner.load().timeout(const Duration(seconds: 10));
       return banner;
     } catch (e) {
-      print('Banner ad load failed: $e');
-      // Notify caller of failure so widget doesn't hang
-      onFailed(banner, LoadAdError(0, 'internal', 'load threw: $e', null));
+      print('Banner ad load failed or timed out: $e');
+      onFailed(
+        banner,
+        LoadAdError(0, 'internal', 'load threw or timed out: $e', null),
+      );
       return null;
     }
   }
 
+  /// FIX: added a hard timeout on the completer. Previously, if AdMob's
+  /// SDK never invoked either onAdLoaded or onAdFailedToLoad (genuinely
+  /// possible — flaky network, blocked ad domain, certain sandboxed test
+  /// environments), completer.future would never resolve, and since
+  /// export_bottom_sheet.dart awaits this call before dismissing itself,
+  /// the ENTIRE EXPORT FLOW would hang indefinitely — the image having
+  /// already saved successfully, but the UI never confirming or
+  /// dismissing. This matches a real-world report of "export not
+  /// working." An ad failing to load should never be able to block a
+  /// core app flow — this restores that guarantee.
   Future<bool> maybeLoadAndShowInterstitial({
     required bool personalized,
   }) async {
@@ -124,6 +140,13 @@ class AdService {
       print('Interstitial load threw: $e');
       if (!completer.isCompleted) completer.complete(false);
     }
-    return completer.future;
+
+    return completer.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        print('Interstitial load timed out — proceeding without an ad.');
+        return false;
+      },
+    );
   }
 }
