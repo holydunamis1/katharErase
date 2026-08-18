@@ -1,4 +1,4 @@
-import 'dart0:typed_data';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:tflite_flutter/tflite_flutter.dart';
