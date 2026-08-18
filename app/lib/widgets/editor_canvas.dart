@@ -21,6 +21,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
   final TransformationController _transformController = TransformationController();
 
   ui.Image? _originalImage;
+  ui.Image? _maskImage;
   String? _decodedForPath;
 
   List<Offset> _activeStrokePoints = [];
@@ -37,6 +38,8 @@ class _EditorCanvasState extends State<EditorCanvas> {
   void dispose() {
     _provider.removeListener(_onStateChanged);
     _transformController.dispose();
+    _originalImage?.dispose();
+    _maskImage?.dispose();
     super.dispose();
   }
 
@@ -44,6 +47,9 @@ class _EditorCanvasState extends State<EditorCanvas> {
     final state = _provider.value;
     if (state.originalPath != null && state.originalPath != _decodedForPath) {
       _decodeOriginalImage(state.originalPath!);
+    }
+    if (state.maskBytes != null) {
+      _updateMaskImage(state.maskBytes!);
     }
   }
 
@@ -57,6 +63,60 @@ class _EditorCanvasState extends State<EditorCanvas> {
       setState(() => _originalImage = frame.image);
     } catch (e) {
       print('Failed to decode original image: $e');
+    }
+  }
+
+  /// FIX: maskBytes is a single-channel (1 byte/pixel) alpha buffer —
+  /// see image_edit_provider.dart's _recomputeMaskFromHistory(), which
+  /// builds Uint8List(width * height). The previous version of this
+  /// method declared pixelFormat: r8g8b8a8 (4 bytes/pixel) directly
+  /// against that 1-byte/pixel buffer — a hard size mismatch that threw
+  /// inside instantiateCodec()/getNextFrame() on every call, silently
+  /// caught below, leaving _maskImage null forever. This version expands
+  /// the single-channel buffer into real RGBA (white RGB + the mask
+  /// value as alpha) before constructing the image, so the declared
+  /// pixel format actually matches the data provided.
+  Future<void> _updateMaskImage(Uint8List maskBytes) async {
+    try {
+      final width = _provider.value.imageSize?.width.round() ?? 0;
+      final height = _provider.value.imageSize?.height.round() ?? 0;
+      if (width <= 0 || height <= 0) return;
+      if (maskBytes.length != width * height) {
+        // Defensive check: if this ever fires, the mask buffer's size
+        // doesn't match imageSize at all (a different bug from the one
+        // fixed here) — bail out cleanly rather than attempt a
+        // guaranteed-wrong expansion.
+        print(
+          'Mask buffer size mismatch: expected ${width * height}, got ${maskBytes.length}',
+        );
+        return;
+      }
+
+      final rgba = Uint8List(width * height * 4);
+      for (var i = 0; i < width * height; i++) {
+        rgba[i * 4] = 255; // R
+        rgba[i * 4 + 1] = 255; // G
+        rgba[i * 4 + 2] = 255; // B
+        rgba[i * 4 + 3] = maskBytes[i]; // A — the actual mask value
+      }
+
+      final buffer = await ui.ImmutableBuffer.fromUint8List(rgba);
+      final descriptor = ui.ImageDescriptor.raw(
+        buffer,
+        width: width,
+        height: height,
+        pixelFormat: ui.PixelFormat.rgba8888,
+      );
+      final codec = await descriptor.instantiateCodec();
+      final frame = await codec.getNextFrame();
+      buffer.dispose();
+      if (!mounted) return;
+      setState(() {
+        _maskImage?.dispose();
+        _maskImage = frame.image;
+      });
+    } catch (e) {
+      print('Failed to create mask image: $e');
     }
   }
 
@@ -102,7 +162,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
               child: CustomPaint(
                 painter: _EditorPainter(
                   original: _originalImage!,
-                  maskBytes: state.maskBytes,
+                  maskImage: _maskImage,
                   backgroundType: state.backgroundType,
                   bgColor: state.bgColor,
                   blurRadius: state.blurRadius,
@@ -121,7 +181,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
 class _EditorPainter extends CustomPainter {
   _EditorPainter({
     required this.original,
-    required this.maskBytes,
+    this.maskImage,
     required this.backgroundType,
     required this.bgColor,
     required this.blurRadius,
@@ -130,7 +190,7 @@ class _EditorPainter extends CustomPainter {
   });
 
   final ui.Image original;
-  final Uint8List? maskBytes;
+  final ui.Image? maskImage;
   final BackgroundType backgroundType;
   final Color? bgColor;
   final double blurRadius;
@@ -141,16 +201,7 @@ class _EditorPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
 
-    if (maskBytes == null) {
-      canvas.drawImageRect(
-        original,
-        Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
-        rect,
-        Paint(),
-      );
-      return;
-    }
-
+    // Draw background
     switch (backgroundType) {
       case BackgroundType.white:
         canvas.drawRect(rect, Paint()..color = Colors.white);
@@ -162,46 +213,61 @@ class _EditorPainter extends CustomPainter {
         canvas.drawRect(rect, Paint()..color = bgColor ?? Colors.white);
         break;
       case BackgroundType.gaussianBlur:
-        canvas.saveLayer(
-          rect,
-          Paint()
-            ..imageFilter = ui.ImageFilter.blur(
-              sigmaX: blurRadius,
-              sigmaY: blurRadius,
-            ),
-        );
-        canvas.drawImageRect(
-          original,
-          Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
-          rect,
-          Paint(),
-        );
-        canvas.restore();
+        _drawBlurredBackground(canvas, rect);
         break;
       case BackgroundType.transparent:
         _drawTransparencyCheckerboard(canvas, rect);
         break;
     }
 
-    canvas.saveLayer(rect, Paint());
+    // Draw original image with mask as alpha
+    if (maskImage != null) {
+      canvas.saveLayer(rect, Paint());
+      canvas.drawImageRect(
+        original,
+        Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
+        rect,
+        Paint(),
+      );
+      final maskPaint = Paint()..blendMode = BlendMode.dstIn;
+      if (edgeFeather > 0) {
+        maskPaint.imageFilter = ui.ImageFilter.blur(
+          sigmaX: edgeFeather,
+          sigmaY: edgeFeather,
+        );
+      }
+      canvas.drawImageRect(
+        maskImage!,
+        Rect.fromLTWH(0, 0, maskImage!.width.toDouble(), maskImage!.height.toDouble()),
+        rect,
+        maskPaint,
+      );
+      canvas.restore();
+    } else {
+      // No mask yet — show original image fully opaque
+      canvas.drawImageRect(
+        original,
+        Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
+        rect,
+        Paint(),
+      );
+    }
+  }
+
+  void _drawBlurredBackground(Canvas canvas, Rect rect) {
+    canvas.saveLayer(
+      rect,
+      Paint()
+        ..imageFilter = ui.ImageFilter.blur(
+          sigmaX: blurRadius,
+          sigmaY: blurRadius,
+        ),
+    );
     canvas.drawImageRect(
       original,
       Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
       rect,
       Paint(),
-    );
-    final maskPaint = Paint()..blendMode = BlendMode.dstIn;
-    if (edgeFeather > 0) {
-      maskPaint.imageFilter = ui.ImageFilter.blur(
-        sigmaX: edgeFeather,
-        sigmaY: edgeFeather,
-      );
-    }
-    canvas.drawImageRect(
-      original,
-      Rect.fromLTWH(0, 0, original.width.toDouble(), original.height.toDouble()),
-      rect,
-      maskPaint,
     );
     canvas.restore();
   }
@@ -224,7 +290,7 @@ class _EditorPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _EditorPainter oldDelegate) {
     return oldDelegate.original != original ||
-        oldDelegate.maskBytes != maskBytes ||
+        oldDelegate.maskImage != maskImage ||
         oldDelegate.backgroundType != backgroundType ||
         oldDelegate.bgColor != bgColor ||
         oldDelegate.blurRadius != blurRadius ||
