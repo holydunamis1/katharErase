@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
+import '../core/services/segmentation_service.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
@@ -69,8 +70,58 @@ class _EditorScreenState extends State<EditorScreen> {
       }
 
       await _provider.autoSegment(inputBuffer.buffer.asUint8List());
+
+      // ================= TEMPORARY DEBUG CODE — START =================
+      if (mounted) {
+        final inShape = SegmentationService.instance.inputShape;
+        final outShape = SegmentationService.instance.outputShape;
+        final lastErr = SegmentationService.instance.lastError;
+
+        showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('DEBUG: Model Status'),
+            content: SingleChildScrollView(
+              child: Text(
+                'inputShape: $inShape\n'
+                'outputShape: $outShape\n'
+                'autoSegmentationFailed: ${_provider.value.autoSegmentationFailed}\n\n'
+                'lastError:\n${lastErr ?? "None"}',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      // ================== TEMPORARY DEBUG CODE — END ==================
     } catch (e) {
       _provider.value = _provider.value.copyWith(autoSegmentationFailed: true);
+      if (mounted) {
+        final lastErr = SegmentationService.instance.lastError;
+        showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('DEBUG: Error before segmentation'),
+            content: SingleChildScrollView(
+              child: Text(
+                'Catch error: $e\n\n'
+                'SegmentationService lastError:\n${lastErr ?? "None"}',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 
