@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -62,7 +63,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
       if (!mounted) return;
       setState(() => _originalImage = frame.image);
     } catch (e) {
-      print('Failed to decode original image: $e');
+      debugPrint('Failed to decode original image: $e');
     }
   }
 
@@ -86,7 +87,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
         // doesn't match imageSize at all (a different bug from the one
         // fixed here) — bail out cleanly rather than attempt a
         // guaranteed-wrong expansion.
-        print(
+        debugPrint(
           'Mask buffer size mismatch: expected ${width * height}, got ${maskBytes.length}',
         );
         return;
@@ -116,7 +117,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
         _maskImage = frame.image;
       });
     } catch (e) {
-      print('Failed to create mask image: $e');
+      debugPrint('Failed to create mask image: $e');
     }
   }
 
