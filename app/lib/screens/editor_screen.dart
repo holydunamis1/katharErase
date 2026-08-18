@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
-import '../core/services/segmentation_service.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
