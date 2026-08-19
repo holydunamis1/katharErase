@@ -1,7 +1,10 @@
 import 'package:image/image.dart' as img;
 
 class SegmentationService {
-  static Future<img.Image> removeBackground(img.Image inputImage) async {
+  SegmentationService._();
+  static final SegmentationService instance = SegmentationService._();
+
+  Future<img.Image> removeBackground(img.Image inputImage) async {
     return inputImage;
   }
 }
