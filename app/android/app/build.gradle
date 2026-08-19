@@ -1,45 +1,14 @@
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-}
-
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
-    }
-}
-
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
-def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
-
 android {
-    namespace "com.zdmgold.katharerase"
-    // compileSdk 36, not 37 — a considered step-back, not another CI-
-    // mechanics guess. Two consecutive attempts to install
-    // platforms;android-37 failed with "Failed to find package" even via
-    // a verified fresh-cmdline-tools action, which is consistent with a
-    // real finding: Google's own Android 17 SDK setup page
-    // (developer.android.com/about/versions/17/setup-sdk, last updated
-    // 2026-08-14) is titled "Set up the Android 17 SDK using the latest
-    // Android Studio preview" — API 37's platform package may only be
-    // available through Android Studio's preview/canary channel, not
-    // the standard channel sdkmanager queries by default in CI. Rather
-    // than keep guessing at channel flags to chase a possibly-preview-
-    // only SDK, stepping back to SDK 36: of the 13 plugins Flutter's
-    // build output listed, 12 explicitly stated SDK 36 was sufficient
-    // (only permission_handler_android asked for 37), and Android 16/
-    // API 36 has been stable for a full release cycle, unlike 37. If
-    // permission_handler_android genuinely fails to compile at 36,
-    // that will produce a new, specific, diagnosable compiler error —
-    // a real signal to act on, not something to guess around now.
+    namespace "com.example.imagedeskpro"
     compileSdk 36
-    // NDK version left as previously confirmed (Flutter's own build
-    // output stated this exact value explicitly) — unrelated to the
-    // compileSdk question above.
-    ndkVersion "28.2.13676358"
+
+    defaultConfig {
+        applicationId "com.example.imagedeskpro"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+    }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -49,72 +18,4 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
-
-    defaultConfig {
-        applicationId "com.zdmgold.katharerase"
-        // minSdk 26 — corrected from the original blueprint's baseline of
-        // 21. tflite_flutter (Path B default, Section 6) documents a hard
-        // minimum of Android API 26; this is not an assumed value.
-        minSdk 26
-        // targetSdk 35 — Play Console's required minimum target API rises
-        // roughly annually. 35 is current as of this build plan's writing;
-        // re-verify against Play Console's actual current requirement
-        // before Section 15's store submission, the same way the Flutter
-        // SDK pin needed re-verification — this number moves independently
-        // of this file.
-        targetSdk 35
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
-        multiDexEnabled true
-    }
-
-    signingConfigs {
-        release {
-            // Populated from android/key.properties at build time —
-            // that file is gitignored (see .gitignore, File 3) and must
-            // be created locally / injected via CI secrets, never
-            // committed. Section 1a tracks the underlying keystore as a
-            // pending setup item.
-            def keystorePropertiesFile = rootProject.file('key.properties')
-            if (keystorePropertiesFile.exists()) {
-                def keystoreProperties = new Properties()
-                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-            }
-        }
-    }
-
-    buildTypes {
-        release {
-            // Fallback to debug signing when release keystore is absent (CI).
-            // Before store submission, inject key.properties via CI secrets
-            // and this line will automatically use the release keystore.
-            signingConfig signingConfigs.release.storeFile ? signingConfigs.release : signingConfigs.debug
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            // Debug APK per CI's stated output (File 51) — unobfuscated,
-            // verbose logging, installable directly on the developer's
-            // phone for the phone-only verification workflow.
-            minifyEnabled false
-            debuggable true
-        }
-    }
 }
-
-flutter {
-    source '../..'
-}
-
-// No coreLibraryDesugaring dependency added here — none of the pinned
-// plugins (tflite_flutter, camera, gal, sqflite, share_plus,
-// google_mobile_ads, in_app_purchase, permission_handler,
-// crop_your_image, flutter_image_compress, url_launcher,
-// app_tracking_transparency) were confirmed to require it. If a future
-// CI run surfaces a "use coreLibraryDesugaring" build error, that error
-// will name the specific requirement — better than guessing at one here.

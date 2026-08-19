@@ -1,13 +1,13 @@
 {
   "@@locale": "en",
 
-  "appTitle": "KatharErase",
+  "appTitle": "Image Desk Pro",
   "@appTitle": {"description": "App name, shown in home_screen app bar and OS task switcher"},
 
-  "onboardingPage1Title": "Remove backgrounds instantly",
-  "onboardingPage1Body": "Tap once and our on-device AI removes the background from your photo — no internet required.",
-  "onboardingPage2Title": "Fine-tune with the brush",
-  "onboardingPage2Body": "Zoom in and paint away anything the AI missed, or restore parts you want to keep.",
+  "onboardingPage1Title": "4 Essential Image Tools",
+  "onboardingPage1Body": "Resize, format passports, add watermarks, and wipe tracking data all in one app.",
+  "onboardingPage2Title": "Built for Privacy",
+  "onboardingPage2Body": "Process your images securely on your device. No cloud uploads required.",
   "onboardingPage3Title": "Free with ads",
   "onboardingPage3Body": "Every feature is free, supported by ads. Go ad-free anytime for just $0.99/month.",
   "onboardingNext": "Next",
@@ -101,7 +101,7 @@
   "settingsRestoreRequested": "Restore requested — check back in a moment.",
   "settingsRestoreFailed": "Restore failed.",
   "settingsShareFailed": "Could not share.",
-  "settingsShareAppMessage": "Remove photo backgrounds instantly with KatharErase — free, no watermark.",
+  "settingsShareAppMessage": "Get Image Desk Pro — the 4-in-1 offline image toolkit. Free, no watermark.",
 
   "paywallTitle": "Go Ad-Free",
   "paywallAlreadyAdFree": "You're already ad-free. Thank you!",
@@ -128,4 +128,13 @@
   "unsupportedLowMemoryMessage": "This device doesn't have enough memory to run KatharErase's editor reliably.",
   "unsupportedManualImportHint": "You can still import a photo from your gallery and use the manual brush tool.",
   "unsupportedUseGalleryButton": "Import from Gallery"
+,
+  "toolResizeTitle": "Resize Image",
+  "toolResizeDesc": "Tap here to make your photo file size smaller for emails or uploads.",
+  "toolPassportTitle": "ID & Passport",
+  "toolPassportDesc": "Tap here to get the right dimensions for official documents.",
+  "toolWatermarkTitle": "Add Watermark",
+  "toolWatermarkDesc": "Tap here to put your logo or text over your image.",
+  "toolExifTitle": "Wipe Hidden Data",
+  "toolExifDesc": "Tap here to remove location and camera tracking data hidden on image before sharing."
 }

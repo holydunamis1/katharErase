@@ -1,210 +1,120 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
-
-import '../core/models/export_job.dart';
-import '../core/services/share_service.dart';
-import '../core/services/storage_service.dart';
-import '../generated/l10n/app_localizations.dart';
+import '../core/utils/theme.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
-import '../widgets/empty_state.dart';
-import '../widgets/recent_export_tile.dart';
-import '../widgets/toast_notification.dart';
 
-/// Logo, two big buttons (Camera, Gallery), recent exports grid (last 6),
-/// settings gear top-right.
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  List<ExportJob> _recentExports = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadRecent();
-  }
-
-  Future<void> _loadRecent() async {
-    try {
-      final jobs = await StorageService.instance.getRecentExportJobs(limit: 6);
-      if (mounted) setState(() => _recentExports = jobs);
-    } catch (e) {
-      // Storage failure shouldn't block the home screen — just show the
-      // empty state as if there were no exports yet.
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _pickFromGallery(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
-    try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: ImageSource.gallery);
-      if (picked == null || !context.mounted) return;
-      context.push('/crop', extra: picked.path);
-    } catch (e) {
-      if (context.mounted) {
-        ToastNotification.show(
-          context,
-          message: l10n.homeGalleryOpenFailed,
-          type: ToastType.error,
-        );
-      }
-    }
-  }
-
-  /// File 38's actual purpose: "tap to share again" — re-shares the
-  /// already-exported file directly via ShareService, no editing session
-  /// or export_bottom_sheet involved (a completed ExportJob has no mask/
-  /// EditableImageState attached, just a finished file on disk).
-  Future<void> _shareAgain(BuildContext context, ExportJob job) async {
-    final l10n = AppLocalizations.of(context);
-    try {
-      final file = File(job.filePath);
-      if (!await file.exists()) {
-        if (context.mounted) {
-          ToastNotification.show(
-            context,
-            message: l10n.homeExportUnavailable,
-            type: ToastType.error,
-          );
-        }
-        return;
-      }
-      final bytes = await file.readAsBytes();
-      await ShareService.instance.shareImage(
-        bytes,
-        filename: file.uri.pathSegments.last,
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ToastNotification.show(
-          context,
-          message: l10n.homeShareFailed,
-          type: ToastType.error,
-        );
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final tools = [
+      _ToolConfig(title: 'Batch Resizer', description: 'Compress & scale image dimensions locally.', icon: Icons.unfold_less_rounded, accentColor: AppTheme.resizeTint, route: '/resize', badge: 'BATCH'),
+      _ToolConfig(title: 'Passport Maker', description: 'Crop exact ID and passport dimensions.', icon: Icons.person_outline_rounded, accentColor: AppTheme.passportTint, route: '/passport', badge: 'ID SPEC'),
+      _ToolConfig(title: 'Watermark Studio', description: 'Apply custom text or visual overlays.', icon: Icons.layers_outlined, accentColor: AppTheme.watermarkTint, route: '/watermark', badge: 'CUSTOM'),
+      _ToolConfig(title: 'EXIF Wiped', description: 'Strip location and device metadata securely.', icon: Icons.admin_panel_settings_outlined, accentColor: AppTheme.exifTint, route: '/exif', badge: 'SECURE'),
+    ];
 
     return AppScaffold(
       appBar: AppBar(
-        title: Text(l10n.appTitle),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: AppTheme.resizeTint.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.hub_rounded, color: AppTheme.resizeTint, size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Image Desk Pro'),
+                Text('Professional Image Toolkit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: Colors.grey)),
+              ],
+            ),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
-          ),
+          IconButton(icon: const Icon(Icons.settings_outlined), onPressed: () => context.push('/settings')),
+          const SizedBox(width: 8),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadRecent,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _BigActionButton(
-                      icon: Icons.photo_camera,
-                      label: l10n.homeCameraButton,
-                      onTap: () => context.push('/camera'),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16.0, mainAxisSpacing: 16.0, childAspectRatio: 0.85),
+                itemCount: tools.length,
+                itemBuilder: (context, index) {
+                  final tool = tools[index];
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceLight,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.grey.withOpacity(0.08), width: 1.5),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 16, offset: const Offset(0, 6))],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _BigActionButton(
-                      icon: Icons.photo_library_outlined,
-                      label: l10n.homeGalleryButton,
-                      onTap: () => _pickFromGallery(context),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(24),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(24),
+                        onTap: () => context.push(tool.route),
+                        child: Padding(
+                          padding: const EdgeInsets.all(18.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(color: tool.accentColor.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                                    child: Icon(tool.icon, size: 26, color: tool.accentColor),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(color: tool.accentColor.withOpacity(0.06), borderRadius: BorderRadius.circular(8)),
+                                    child: Text(tool.badge, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: tool.accentColor, letterSpacing: 0.5)),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(tool.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.primaryDark, letterSpacing: -0.3)),
+                                  const SizedBox(height: 4),
+                                  Text(tool.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w400, color: Colors.grey[600], height: 1.3)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
-              const SizedBox(height: 24),
-              Text(l10n.homeRecentExports, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              if (_loading)
-                const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_recentExports.isEmpty)
-                const EmptyState()
-              else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _recentExports.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1,
-                  ),
-                  itemBuilder: (context, i) {
-                    final job = _recentExports[i];
-                    return RecentExportTile(
-                      job: job,
-                      onTap: () => _shareAgain(context, job),
-                    );
-                  },
-                ),
-            ],
+            ),
           ),
-        ),
+          const AdBannerSlot(personalized: false),
+        ],
       ),
     );
   }
 }
 
-class _BigActionButton extends StatelessWidget {
-  const _BigActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
+class _ToolConfig {
+  const _ToolConfig({required this.title, required this.description, required this.icon, required this.accentColor, required this.route, required this.badge});
+  final String title;
+  final String description;
   final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1.2,
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 40),
-              const SizedBox(height: 8),
-              Text(label, style: Theme.of(context).textTheme.titleMedium),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  final Color accentColor;
+  final String route;
+  final String badge;
 }

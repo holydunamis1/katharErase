@@ -1,5 +1,5 @@
-name: katharerase
-description: Remove photo backgrounds instantly. Free, with ads. Go ad-free for $0.99/mo.
+name: imagedeskpro
+description: Professional-grade image utility toolkit. Batch resize, passport ID crop, secure watermarking, and EXIF wiping.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -11,48 +11,28 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-
-  # --- State & Navigation ---
   provider: ^6.1.5+1
   go_router: ^16.2.0
-
-  # --- Image & Camera ---
   camera: ^0.12.0+2
   image_picker: ^1.2.3
   image: ^4.5.4
   gal: ^2.3.0
   crop_your_image: ^2.0.0
   flutter_image_compress: ^2.5.1
-
-  # --- On-Device ML ---
-  tflite_flutter: ^0.12.1
-
-  # --- Storage ---
   sqflite: ^2.4.3
   path_provider: ^2.1.6
   path: ^1.9.1
   shared_preferences: ^2.5.5
-
-  # --- Sharing & External Links ---
   share_plus: ^13.3.0
   cross_file: ^0.3.5+1
   url_launcher: ^6.3.2
-
-  # --- Monetization ---
   google_mobile_ads: ^9.0.0
   in_app_purchase: ^3.3.0
   app_tracking_transparency: ^2.0.6+1
   permission_handler: ^12.0.0
-
-  # --- Localization ---
-  # flutter_localizations from Flutter 3.44.7 pins intl to 0.20.2.
   intl: ^0.20.2
-
-  # --- UI ---
   flutter_native_splash: ^2.4.8
   flutter_launcher_icons: ^0.14.4
-
-  # --- Codegen ---
   freezed_annotation: ^3.0.0
   json_annotation: ^4.12.0
 
@@ -67,8 +47,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
-
   assets:
     - assets/logo.svg
     - assets/images/
-    - assets/models/segmentation.tflite
