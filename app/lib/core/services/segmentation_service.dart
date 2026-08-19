@@ -14,4 +14,9 @@ class SegmentationException implements Exception {
   SegmentationException(this.message);
   @override
   String toString() => message;
+
+  List<int>? get inputShape => _inputShape;
+  List<int>? get outputShape => _outputShape;
+  String? get lastError => _lastError;
+
 }

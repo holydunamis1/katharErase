@@ -1,3 +1,4 @@
+import 'package:imagedeskpro/core/models/editable_image_state.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
@@ -122,4 +123,8 @@ class ImageEditProvider extends ValueNotifier<EditableImageState> {
   void applyBrushStroke(dynamic strokeDetails) {
     // Implementation stub for brush strokes
   }
+
+  bool get canUndo => false;
+  bool get canRedo => false;
+
 }
