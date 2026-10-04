@@ -1,130 +1,166 @@
-import 'package:imagedeskpro/core/models/editable_image_state.dart';
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img;
 
-enum BackgroundType { original, transparent, color, blur }
-enum BrushMode { brush, eraser }
-
-class EditableImageState {
-  final img.Image? originalImage;
-  final img.Image? processedImage;
-  final BackgroundType backgroundType;
-  final int bgColor;
-  final double blurRadius;
-  final BrushMode brushMode;
-  final double brushSize;
-  final double brushOpacity;
-  final double edgeFeather;
-  final bool showBefore;
-  final bool canUndo;
-  final bool canRedo;
-
-  const EditableImageState({
-    this.originalImage,
-    this.processedImage,
-    this.backgroundType = BackgroundType.original,
-    this.bgColor = 0xFFFFFFFF,
-    this.blurRadius = 0.0,
-    this.brushMode = BrushMode.brush,
-    this.brushSize = 20.0,
-    this.brushOpacity = 1.0,
-    this.edgeFeather = 0.0,
-    this.showBefore = false,
-    this.canUndo = false,
-    this.canRedo = false,
-  });
-
-  EditableImageState copyWith({
-    img.Image? originalImage,
-    img.Image? processedImage,
-    BackgroundType? backgroundType,
-    int? bgColor,
-    double? blurRadius,
-    BrushMode? brushMode,
-    double? brushSize,
-    double? brushOpacity,
-    double? edgeFeather,
-    bool? showBefore,
-    bool? canUndo,
-    bool? canRedo,
-  }) {
-    return EditableImageState(
-      originalImage: originalImage ?? this.originalImage,
-      processedImage: processedImage ?? this.processedImage,
-      backgroundType: backgroundType ?? this.backgroundType,
-      bgColor: bgColor ?? this.bgColor,
-      blurRadius: blurRadius ?? this.blurRadius,
-      brushMode: brushMode ?? this.brushMode,
-      brushSize: brushSize ?? this.brushSize,
-      brushOpacity: brushOpacity ?? this.brushOpacity,
-      edgeFeather: edgeFeather ?? this.edgeFeather,
-      showBefore: showBefore ?? this.showBefore,
-      canUndo: canUndo ?? this.canUndo,
-      canRedo: canRedo ?? this.canRedo,
-    );
-  }
-}
+import '../models/editable_image_state.dart';
+import '../services/segmentation_service.dart';
 
 class ImageEditProvider extends ValueNotifier<EditableImageState> {
   ImageEditProvider() : super(const EditableImageState());
 
-  Future<void> loadImage(dynamic imageSource) async {
-    // Implementation stub for loading image
+  void loadImage(String path, Size imageSize) {
+    value = EditableImageState(
+      originalPath: path,
+      imageSize: imageSize,
+    );
   }
 
-  Future<void> autoSegment() async {
-    // Implementation stub for auto segmentation
+  Future<void> autoSegment(Uint8List preprocessedInput) async {
+    value = value.copyWith(isProcessing: true, autoSegmentationFailed: false);
+    try {
+      await SegmentationService.instance.loadModel();
+      final maskBytes = await SegmentationService.instance.runInference(
+        Float32List.fromList(
+          preprocessedInput.map((b) => b / 255.0).toList(),
+        ),
+      );
+      value = value.copyWith(
+        maskBytes: maskBytes,
+        isProcessing: false,
+        autoSegmentationFailed: false,
+      );
+    } on SegmentationException {
+      value = value.copyWith(
+        isProcessing: false,
+        autoSegmentationFailed: true,
+      );
+    } catch (e) {
+      value = value.copyWith(
+        isProcessing: false,
+        autoSegmentationFailed: true,
+      );
+    }
+  }
+
+  void setBrushSize(double sizePx) {
+    value = value.copyWith(currentBrushSizePx: sizePx);
+  }
+
+  void setBrushMode({required bool isRestore}) {
+    value = value.copyWith(currentBrushIsRestore: isRestore);
+  }
+
+  void setBrushOpacity(double opacity) {
+    value = value.copyWith(currentBrushOpacity: opacity);
+  }
+
+  void applyBrushStroke(List<Offset> points) {
+    final stroke = BrushStrokeEvent(
+      points: points,
+      brushSizePx: value.currentBrushSizePx,
+      isRestore: value.currentBrushIsRestore,
+      opacity: value.currentBrushOpacity,
+    );
+    final truncated = value.historyIndex + 1 < value.brushHistory.length
+        ? value.brushHistory.sublist(0, value.historyIndex + 1)
+        : value.brushHistory;
+    final newHistory = [...truncated, stroke];
+    value = value.copyWith(
+      brushHistory: newHistory,
+      historyIndex: newHistory.length - 1,
+    );
+    _recomputeMaskFromHistory();
+  }
+
+  void undo() {
+    if (value.historyIndex < 0) return;
+    value = value.copyWith(historyIndex: value.historyIndex - 1);
+    _recomputeMaskFromHistory();
+  }
+
+  void redo() {
+    if (value.historyIndex + 1 >= value.brushHistory.length) return;
+    value = value.copyWith(historyIndex: value.historyIndex + 1);
+    _recomputeMaskFromHistory();
+  }
+
+  bool get canUndo => value.historyIndex >= 0;
+  bool get canRedo => value.historyIndex + 1 < value.brushHistory.length;
+
+  void resetMask() {
+    value = value.copyWith(
+      brushHistory: const [],
+      historyIndex: -1,
+    );
+    _recomputeMaskFromHistory();
+  }
+
+  void _recomputeMaskFromHistory() {
+    if (value.imageSize == null) return;
+    final width = value.imageSize!.width.round();
+    final height = value.imageSize!.height.round();
+    final buffer = Uint8List(width * height);
+
+    if (value.maskBytes != null && value.maskBytes!.length == buffer.length) {
+      buffer.setAll(0, value.maskBytes!);
+    } else {
+      buffer.fillRange(0, buffer.length, 255);
+    }
+
+    for (var i = 0; i <= value.historyIndex && i < value.brushHistory.length; i++) {
+      final stroke = value.brushHistory[i];
+      final radius = (stroke.brushSizePx / 2).round().clamp(1, 200);
+      final delta = (255 * stroke.opacity).round().clamp(0, 255);
+      for (final point in stroke.points) {
+        final cx = point.dx.round();
+        final cy = point.dy.round();
+        for (var dy = -radius; dy <= radius; dy++) {
+          final y = cy + dy;
+          if (y < 0 || y >= height) continue;
+          for (var dx = -radius; dx <= radius; dx++) {
+            if (dx * dx + dy * dy > radius * radius) continue;
+            final x = cx + dx;
+            if (x < 0 || x >= width) continue;
+            final idx = y * width + x;
+            buffer[idx] = stroke.isRestore
+                ? (buffer[idx] + delta).clamp(0, 255)
+                : (buffer[idx] - delta).clamp(0, 255);
+          }
+        }
+      }
+    }
+
+    value = value.copyWith(maskBytes: Uint8List.fromList(buffer));
   }
 
   void setBackgroundType(BackgroundType type) {
     value = value.copyWith(backgroundType: type);
   }
 
-  void setBgColor(int color) {
-    value = value.copyWith(bgColor: color);
+  void setBgColor(Color color) {
+    value = value.copyWith(backgroundType: BackgroundType.solidColor, bgColor: color);
   }
 
-  void setBlurRadius(double radius) {
-    value = value.copyWith(blurRadius: radius);
+  void setBlurRadius(double radiusPx) {
+    value = value.copyWith(
+      backgroundType: BackgroundType.gaussianBlur,
+      blurRadius: radiusPx,
+    );
+  }
+
+  void setEdgeFeather(double featherPx) {
+    value = value.copyWith(edgeFeather: featherPx);
+  }
+
+  void setZoom(double zoom) {
+    value = value.copyWith(zoom: zoom);
+  }
+
+  void setPanOffset(Offset offset) {
+    value = value.copyWith(panOffset: offset);
   }
 
   void toggleBeforeAfter() {
-    value = value.copyWith(showBefore: !value.showBefore);
+    value = value.copyWith(showBeforeAfter: !value.showBeforeAfter);
   }
-
-  void undo() {
-    // Implementation stub for undo
-  }
-
-  void redo() {
-    // Implementation stub for redo
-  }
-
-  void resetMask() {
-    // Implementation stub for resetting mask
-  }
-
-  void setBrushMode(BrushMode mode) {
-    value = value.copyWith(brushMode: mode);
-  }
-
-  void setBrushSize(double size) {
-    value = value.copyWith(brushSize: size);
-  }
-
-  void setBrushOpacity(double opacity) {
-    value = value.copyWith(brushOpacity: opacity);
-  }
-
-  void setEdgeFeather(double feather) {
-    value = value.copyWith(edgeFeather: feather);
-  }
-
-  void applyBrushStroke(dynamic strokeDetails) {
-    // Implementation stub for brush strokes
-  }
-
-  bool get canUndo => false;
-  bool get canRedo => false;
-
 }
