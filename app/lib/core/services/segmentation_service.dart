@@ -24,8 +24,8 @@ typedef SegmentationRunner = Future<Float32List> Function(Float32List input);
 
 /// On-device salient-object segmentation (U2-Netp, class-agnostic).
 ///
-/// Inference runs in a background isolate so a slow phone never freezes the
-/// UI. Pre/post-processing lives in mask_pipeline.dart.
+/// Inference runs in a background isolate (with a main-thread retry if that
+/// fails) so a slow phone doesn't freeze the UI. Pre/post-processing lives in mask_pipeline.dart.
 class SegmentationService {
   SegmentationService._() : _runner = _defaultRunner;
 
@@ -76,7 +76,14 @@ class SegmentationService {
       data.offsetInBytes,
       data.lengthInBytes,
     );
-    return Isolate.run(() => _inferInIsolate(modelBytes, input));
+    try {
+      return await Isolate.run(() => _inferInIsolate(modelBytes, input));
+    } catch (_) {
+      // Safety net: if native inference can't run off the main thread on
+      // this device, retry once on the main thread (slower, but works)
+      // instead of giving up on automatic removal.
+      return _inferInIsolate(modelBytes, input);
+    }
   }
 }
 
