@@ -1,16 +1,14 @@
-import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
-import '../core/services/segmentation_service.dart';
 import '../generated/l10n/app_localizations.dart';
+import '../platform/image_prep_service.dart';
 import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/background_selector.dart';
@@ -45,91 +43,29 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _loadAndSegment() async {
-    final size = await _decodeImageSize(widget.imagePath);
-    _provider.loadImage(widget.imagePath, size);
-
+    // Show the spinner immediately; decoding, EXIF rotation, resizing and
+    // model preprocessing all run in a background isolate.
+    _provider.value = const EditableImageState(isProcessing: true);
     try {
-      final fileBytes = await File(widget.imagePath).readAsBytes();
-      final original = img.decodeImage(fileBytes);
-      if (original == null) {
-        _provider.value = _provider.value.copyWith(autoSegmentationFailed: true);
-        return;
-      }
-
-      // MediaPipe Selfie Segmentation preprocessing: 256x256, [0, 1] normalization
-      final resized = img.copyResize(original, width: 256, height: 256);
-      final inputBuffer = Float32List(256 * 256 * 3);
-      var idx = 0;
-      for (var y = 0; y < 256; y++) {
-        for (var x = 0; x < 256; x++) {
-          final pixel = resized.getPixel(x, y);
-          inputBuffer[idx++] = pixel.r / 255.0;
-          inputBuffer[idx++] = pixel.g / 255.0;
-          inputBuffer[idx++] = pixel.b / 255.0;
-        }
-      }
-
-      await _provider.autoSegment(inputBuffer.buffer.asUint8List());
-
-      // ================= TEMPORARY DEBUG CODE — START =================
-      if (mounted) {
-        final inShape = SegmentationService.instance.inputShape;
-        final outShape = SegmentationService.instance.outputShape;
-        final lastErr = SegmentationService.instance.lastError;
-
-        showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('DEBUG: Model Status'),
-            content: SingleChildScrollView(
-              child: Text(
-                'inputShape: $inShape\n'
-                'outputShape: $outShape\n'
-                'autoSegmentationFailed: ${_provider.value.autoSegmentationFailed}\n\n'
-                'lastError:\n${lastErr ?? "None"}',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-      // ================== TEMPORARY DEBUG CODE — END ==================
-    } catch (e) {
-      _provider.value = _provider.value.copyWith(autoSegmentationFailed: true);
-      if (mounted) {
-        final lastErr = SegmentationService.instance.lastError;
-        showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('DEBUG: Error before segmentation'),
-            content: SingleChildScrollView(
-              child: Text(
-                'Catch error: $e\n\n'
-                'SegmentationService lastError:\n${lastErr ?? "None"}',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
+      final tempDir = await getTemporaryDirectory();
+      final prepared = await prepareImage(widget.imagePath, tempDir.path);
+      if (!mounted) return;
+      _provider.loadImage(
+        prepared.path,
+        ui.Size(prepared.width.toDouble(), prepared.height.toDouble()),
+      );
+      await _provider.autoSegment(
+        prepared.modelInput,
+        prepared.width,
+        prepared.height,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _provider.value = _provider.value.copyWith(
+        isProcessing: false,
+        autoSegmentationFailed: true,
+      );
     }
-  }
-
-  Future<ui.Size> _decodeImageSize(String path) async {
-    final bytes = await File(path).readAsBytes();
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    return ui.Size(frame.image.width.toDouble(), frame.image.height.toDouble());
   }
 
   void _openExportSheet() {

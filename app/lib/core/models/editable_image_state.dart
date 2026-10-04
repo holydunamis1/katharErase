@@ -40,6 +40,10 @@ abstract class EditableImageState with _$EditableImageState {
     String? originalPath,
     Uint8List? processedBytes,
     Uint8List? maskBytes,
+    // The untouched AI mask (same size as the image). maskBytes is always
+    // derived from this plus the brush history, so undo/redo/reset replay
+    // from a stable base instead of re-applying strokes on top of themselves.
+    Uint8List? baseMaskBytes,
     @Default([]) List<BrushStrokeEvent> brushHistory,
     @Default(-1) int historyIndex,
     @Default(BackgroundType.transparent) BackgroundType backgroundType,

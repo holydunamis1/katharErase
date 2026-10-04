@@ -96,6 +96,7 @@
   "settingsSupport": "Support",
   "settingsRateApp": "Rate App",
   "settingsShareApp": "Share App",
+  "settingsLicenses": "Open-source licenses",
   "settingsLinkNotReady": "This link isn't set up yet.",
   "settingsLinkOpenFailed": "Could not open link.",
   "settingsRestoreRequested": "Restore requested — check back in a moment.",

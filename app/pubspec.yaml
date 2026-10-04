@@ -72,3 +72,4 @@ flutter:
     - assets/logo.svg
     - assets/images/
     - assets/models/segmentation.tflite
+    - assets/licenses/u2net_apache2.txt

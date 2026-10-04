@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart'
+    show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import 'app.dart';
 import 'core/providers/ad_provider.dart';
@@ -13,6 +16,22 @@ import 'platform/ad_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppErrorHandler.init();
+
+  // Apache-2.0 attribution for the bundled segmentation model (U2-Netp),
+  // shown on the in-app licenses page (Settings > Open-source licenses).
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/licenses/u2net_apache2.txt');
+    yield LicenseEntryWithLineBreaks(
+      ['U2-Net (u2netp) segmentation model'],
+      'U2-Net: Going Deeper with Nested U-Structure for Salient Object '
+      'Detection. Xuebin Qin, Zichen Zhang, Chenyang Huang, Masood Dehghan, '
+      'Osmar R. Zaiane and Martin Jagersand. Pattern Recognition, 2020.\n'
+      'https://github.com/xuebinqin/U-2-Net\n\n'
+      'Changes: the pretrained u2netp weights were converted to TensorFlow '
+      'Lite format and the model was trimmed to its single fused output.\n\n'
+      '$text',
+    );
+  });
 
   // sqflite init (File 47) — eagerly open/create the database so any
   // first-use failure surfaces here, wrapped in try/catch, rather than

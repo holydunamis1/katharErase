@@ -1,6 +1,8 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 import '../utils/constants.dart';
@@ -16,127 +18,115 @@ class SegmentationException implements Exception {
       '${cause != null ? ' (cause: $cause)' : ''}';
 }
 
-abstract class TfliteInterpreterAdapter {
-  List<int> getInputShape();
-  List<int> getOutputShape();
-  void run(Object input, Object output);
-  void close();
-}
+/// Runs the model: takes the preprocessed input tensor (320x320x3 floats)
+/// and returns the raw output tensor (320x320 floats).
+typedef SegmentationRunner = Future<Float32List> Function(Float32List input);
 
-class _RealTfliteInterpreterAdapter implements TfliteInterpreterAdapter {
-  _RealTfliteInterpreterAdapter(this._interpreter);
-  final Interpreter _interpreter;
-
-  @override
-  List<int> getInputShape() => _interpreter.getInputTensor(0).shape;
-
-  @override
-  List<int> getOutputShape() => _interpreter.getOutputTensor(0).shape;
-
-  @override
-  void run(Object input, Object output) => _interpreter.run(input, output);
-
-  @override
-  void close() => _interpreter.close();
-}
-
+/// On-device salient-object segmentation (U2-Netp, class-agnostic).
+///
+/// Inference runs in a background isolate so a slow phone never freezes the
+/// UI. Pre/post-processing lives in mask_pipeline.dart.
 class SegmentationService {
-  SegmentationService._({
-    Future<TfliteInterpreterAdapter> Function(String assetPath)? loader,
-  }) : _loader = loader ?? _defaultLoader;
+  SegmentationService._() : _runner = _defaultRunner;
 
   static final SegmentationService instance = SegmentationService._();
 
+  /// Test-only constructor — injects a fake runner so the error-handling
+  /// contract can be tested without a native TFLite library.
   @visibleForTesting
-  SegmentationService.forTesting(
-    Future<TfliteInterpreterAdapter> Function(String assetPath) loader,
-  ) : _loader = loader;
+  SegmentationService.forTesting(SegmentationRunner runner) : _runner = runner;
 
-  static Future<TfliteInterpreterAdapter> _defaultLoader(
-    String assetPath,
-  ) async {
-    final options = InterpreterOptions()..threads = 4;
-    final interpreter = await Interpreter.fromAsset(assetPath, options: options);
-    return _RealTfliteInterpreterAdapter(interpreter);
-  }
-
-  final Future<TfliteInterpreterAdapter> Function(String assetPath) _loader;
-
-  TfliteInterpreterAdapter? _interpreter;
-  List<int>? _inputShape;
-  List<int>? _outputShape;
+  final SegmentationRunner _runner;
   String? _lastError;
 
-  bool get isLoaded => _interpreter != null;
   String? get lastError => _lastError;
 
-  Future<void> loadModel() async {
-    if (_interpreter != null) return;
-    _lastError = null;
+  /// Returns the raw model output (kModelInputSize x kModelInputSize floats).
+  /// Any failure is wrapped in [SegmentationException] so callers can fall
+  /// back to the manual brush.
+  Future<Float32List> infer(Float32List input) async {
+    const expectedIn = kModelInputSize * kModelInputSize * 3;
+    const expectedOut = kModelInputSize * kModelInputSize;
+    if (input.length != expectedIn) {
+      final err = 'Input has ${input.length} values, expected $expectedIn.';
+      _lastError = err;
+      throw SegmentationException(err);
+    }
     try {
-      final interpreter = await _loader('assets/models/segmentation.tflite');
-      _inputShape = interpreter.getInputShape();
-      _outputShape = interpreter.getOutputShape();
-      _interpreter = interpreter;
+      final output = await _runner(input);
+      if (output.length != expectedOut) {
+        throw StateError(
+          'Model returned ${output.length} values, expected $expectedOut.',
+        );
+      }
+      _lastError = null;
+      return output;
     } catch (e, stack) {
-      _lastError = 'LOAD FAILURE: $e\n$stack';
+      _lastError = 'INFERENCE FAILURE: $e\n$stack';
       throw SegmentationException(
-        'Failed to load segmentation model. Falling back to manual brush.',
+        'Background removal failed. Falling back to manual brush.',
         e,
       );
     }
   }
 
-  Future<Uint8List> runInference(Float32List inputBuffer) async {
-    final interpreter = _interpreter;
-    if (interpreter == null || _inputShape == null || _outputShape == null) {
-      const err = 'Segmentation model not loaded. Call loadModel() first.';
-      _lastError = err;
-      throw const SegmentationException(err);
+  static Future<Float32List> _defaultRunner(Float32List input) async {
+    final data = await rootBundle.load(kSegmentationModelAsset);
+    final modelBytes = data.buffer.asUint8List(
+      data.offsetInBytes,
+      data.lengthInBytes,
+    );
+    return Isolate.run(() => _inferInIsolate(modelBytes, input));
+  }
+}
+
+bool _sameShape(List<int> a, List<int> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+Float32List _inferInIsolate(Uint8List modelBytes, Float32List input) {
+  final options = InterpreterOptions()..threads = 4;
+  final interpreter = Interpreter.fromBuffer(modelBytes, options: options);
+  try {
+    final inputShape = interpreter.getInputTensor(0).shape;
+    final outputShape = interpreter.getOutputTensor(0).shape;
+    const expectedIn = [1, kModelInputSize, kModelInputSize, 3];
+    const expectedOut = [1, kModelInputSize, kModelInputSize, 1];
+    if (!_sameShape(inputShape, expectedIn) ||
+        !_sameShape(outputShape, expectedOut)) {
+      throw StateError(
+        'Unexpected model tensor shapes: input $inputShape, '
+        'output $outputShape.',
+      );
     }
-    try {
-      final inputShape = _inputShape!;
-      final outputShape = _outputShape!;
-      final outputLength = outputShape.reduce((a, b) => a * b);
 
-      final reshapedInput = inputBuffer.reshape<dynamic>(inputShape);
-      final reshapedOutput = List<double>.filled(outputLength, 0.0).reshape<dynamic>(outputShape);
+    final outputLength = outputShape.reduce((a, b) => a * b);
+    final reshapedInput = input.reshape<dynamic>(inputShape);
+    final reshapedOutput =
+        List<double>.filled(outputLength, 0.0).reshape<dynamic>(outputShape);
 
-      interpreter.run(reshapedInput, reshapedOutput);
+    interpreter.run(reshapedInput, reshapedOutput);
 
-      final maskBytes = Uint8List(outputLength);
-      int index = 0;
-
-      void flattenAndQuantize(dynamic element) {
-        if (element is List) {
-          for (var subElement in element) {
-            flattenAndQuantize(subElement);
-          }
-        } else if (element is num) {
-          maskBytes[index] = (element.clamp(0.0, 1.0) * 255).round();
-          index++;
+    final result = Float32List(outputLength);
+    var index = 0;
+    void flatten(dynamic element) {
+      if (element is List) {
+        for (final sub in element) {
+          flatten(sub);
         }
+      } else if (element is num && index < outputLength) {
+        result[index] = element.toDouble();
+        index++;
       }
-
-      flattenAndQuantize(reshapedOutput);
-      return maskBytes;
-    } catch (e, stack) {
-      _lastError = 'INFERENCE FAILURE: $e\n$stack';
-      throw SegmentationException('Inference failed.', e);
     }
+
+    flatten(reshapedOutput);
+    return result;
+  } finally {
+    interpreter.close();
   }
-
-  List<int>? get inputShape => _inputShape;
-  List<int>? get outputShape => _outputShape;
-
-  void dispose() {
-    _interpreter?.close();
-    _interpreter = null;
-    _inputShape = null;
-    _outputShape = null;
-    _lastError = null;
-  }
-
-  // ignore: unused_field
-  static const bool _pathAReserved = kMlKitPathAEnabled;
 }

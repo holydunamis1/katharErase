@@ -23,6 +23,12 @@ class _EditorCanvasState extends State<EditorCanvas> {
   ui.Image? _originalImage;
   ui.Image? _maskImage;
   String? _decodedForPath;
+  // The mask buffer _maskImage was built from, and a counter that lets a
+  // slow build be discarded if a newer mask arrived meanwhile. Rebuilding
+  // the full-size mask image is expensive, so it only happens when the
+  // mask itself changed (not on zoom, pan or slider changes).
+  Uint8List? _maskSource;
+  int _maskGeneration = 0;
 
   List<Offset> _activeStrokePoints = [];
 
@@ -48,8 +54,17 @@ class _EditorCanvasState extends State<EditorCanvas> {
     if (state.originalPath != null && state.originalPath != _decodedForPath) {
       _decodeOriginalImage(state.originalPath!);
     }
-    if (state.maskBytes != null) {
-      _updateMaskImage(state.maskBytes!);
+    if (!identical(state.maskBytes, _maskSource)) {
+      _maskSource = state.maskBytes;
+      if (state.maskBytes != null) {
+        _updateMaskImage(state.maskBytes!);
+      } else if (_maskImage != null) {
+        _maskGeneration++;
+        setState(() {
+          _maskImage?.dispose();
+          _maskImage = null;
+        });
+      }
     }
   }
 
@@ -67,6 +82,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
   }
 
   Future<void> _updateMaskImage(Uint8List maskBytes) async {
+    final generation = ++_maskGeneration;
     try {
       final width = _provider.value.imageSize?.width.round() ?? 0;
       final height = _provider.value.imageSize?.height.round() ?? 0;
@@ -96,7 +112,10 @@ class _EditorCanvasState extends State<EditorCanvas> {
       final codec = await descriptor.instantiateCodec();
       final frame = await codec.getNextFrame();
       buffer.dispose();
-      if (!mounted) return;
+      if (!mounted || generation != _maskGeneration) {
+        frame.image.dispose();
+        return;
+      }
       setState(() {
         _maskImage?.dispose();
         _maskImage = frame.image;

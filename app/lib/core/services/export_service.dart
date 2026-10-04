@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show compute, visibleForTesting;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
 
@@ -56,8 +56,14 @@ class ExportService {
   final Future<Uint8List> Function(Uint8List pngBytes, int quality) _webpEncoder;
 
   /// Main entry point: takes the original image bytes, the mask produced
-  /// by segmentation_service.dart / brush edits, and the current editor
-  /// state, and produces final export bytes in the requested format.
+  /// by segmentation / brush edits, and the current editor state, and
+  /// produces final export bytes in the requested format.
+  ///
+  /// The heavy pixel work (decode, composite, blur, resize, PNG/JPG encode)
+  /// runs in a background isolate so the UI never freezes. WEBP encoding
+  /// needs a platform plugin, which is only available on the main isolate,
+  /// so for WEBP the isolate returns PNG bytes and the final encode happens
+  /// here.
   Future<Uint8List> compositeAndExport({
     required Uint8List originalBytes,
     required Uint8List maskBytes,
@@ -72,48 +78,70 @@ class ExportService {
     int? customHeight,
   }) async {
     try {
-      final original = img.decodeImage(originalBytes);
-      if (original == null) {
-        throw const ExportException('Could not decode source image.');
-      }
-
-      var composited = _applyMaskAndBackground(
-        original: original,
+      final args = _ExportArgs(
+        originalBytes: originalBytes,
         maskBytes: maskBytes,
         backgroundType: backgroundType,
-        bgColor: bgColor,
+        bgColorArgb: bgColor?.toARGB32(),
         blurRadius: blurRadius,
         edgeFeather: edgeFeather,
-      );
-
-      composited = _applyResize(
-        composited,
+        format: format,
+        quality: quality,
         resizeMode: resizeMode,
         customWidth: customWidth,
         customHeight: customHeight,
       );
-
-      switch (format) {
-        case ExportFormat.png:
-          return Uint8List.fromList(img.encodePng(composited));
-        case ExportFormat.jpg:
-          // JPEG has no alpha channel — flatten onto white first if the
-          // background choice was "transparent" (Feature 4 + Feature 5
-          // interaction the build plan doesn't explicitly resolve; white
-          // flatten is the least-surprising default rather than black).
-          final flattened = backgroundType == BackgroundType.transparent
-              ? _flattenOntoWhite(composited)
-              : composited;
-          return Uint8List.fromList(
-            img.encodeJpg(flattened, quality: quality),
-          );
-        case ExportFormat.webp:
-          return _encodeWebpWithFallback(composited, quality: quality);
+      final bytes = await compute(_exportInIsolate, args);
+      if (format == ExportFormat.webp) {
+        return _encodeWebpWithFallback(bytes, quality: quality);
       }
+      return bytes;
     } on ExportException {
       rethrow;
     } catch (e) {
       throw ExportException('Export failed.', e);
+    }
+  }
+
+  /// The isolate-side work. Returns PNG bytes for png and webp, JPG bytes
+  /// for jpg.
+  Uint8List _compositeToBytes(_ExportArgs a) {
+    final original = img.decodeImage(a.originalBytes);
+    if (original == null) {
+      throw const ExportException('Could not decode source image.');
+    }
+
+    var composited = _applyMaskAndBackground(
+      original: original,
+      maskBytes: a.maskBytes,
+      backgroundType: a.backgroundType,
+      bgColor: a.bgColorArgb == null ? null : Color(a.bgColorArgb!),
+      blurRadius: a.blurRadius,
+      edgeFeather: a.edgeFeather,
+    );
+
+    composited = _applyResize(
+      composited,
+      resizeMode: a.resizeMode,
+      customWidth: a.customWidth,
+      customHeight: a.customHeight,
+    );
+
+    switch (a.format) {
+      case ExportFormat.png:
+      case ExportFormat.webp:
+        return Uint8List.fromList(img.encodePng(composited));
+      case ExportFormat.jpg:
+        // JPEG has no alpha channel — flatten onto white first if the
+        // background choice was "transparent" (Feature 4 + Feature 5
+        // interaction the build plan doesn't explicitly resolve; white
+        // flatten is the least-surprising default rather than black).
+        final flattened = a.backgroundType == BackgroundType.transparent
+            ? _flattenOntoWhite(composited)
+            : composited;
+        return Uint8List.fromList(
+          img.encodeJpg(flattened, quality: a.quality),
+        );
     }
   }
 
@@ -293,10 +321,9 @@ class ExportService {
   /// documented pattern — WEBP requires a working platform encoder, not
   /// guaranteed on every device.
   Future<Uint8List> _encodeWebpWithFallback(
-    img.Image composited, {
+    Uint8List pngBytes, {
     required int quality,
   }) async {
-    final pngBytes = Uint8List.fromList(img.encodePng(composited));
     try {
       final webpBytes = await _webpEncoder(pngBytes, quality);
       if (webpBytes.isEmpty) {
@@ -308,9 +335,52 @@ class ExportService {
     } on UnsupportedError catch (_) {
       // Documented fallback pattern from flutter_image_compress's own
       // README — this device/platform combination can't produce WEBP.
-      return Uint8List.fromList(img.encodeJpg(composited, quality: quality));
+      final decoded = img.decodePng(pngBytes);
+      if (decoded == null) {
+        throw const ExportException('WEBP export failed.');
+      }
+      return Uint8List.fromList(img.encodeJpg(decoded, quality: quality));
     } catch (e) {
       throw ExportException('WEBP export failed.', e);
     }
   }
+}
+
+/// Everything the isolate needs, as plain sendable data (Color travels as
+/// an ARGB int).
+class _ExportArgs {
+  const _ExportArgs({
+    required this.originalBytes,
+    required this.maskBytes,
+    required this.backgroundType,
+    required this.bgColorArgb,
+    required this.blurRadius,
+    required this.edgeFeather,
+    required this.format,
+    required this.quality,
+    required this.resizeMode,
+    required this.customWidth,
+    required this.customHeight,
+  });
+
+  final Uint8List originalBytes;
+  final Uint8List maskBytes;
+  final BackgroundType backgroundType;
+  final int? bgColorArgb;
+  final double blurRadius;
+  final double edgeFeather;
+  final ExportFormat format;
+  final int quality;
+  final ResizeMode resizeMode;
+  final int? customWidth;
+  final int? customHeight;
+}
+
+Future<Uint8List> _unavailableWebpEncoder(Uint8List pngBytes, int quality) {
+  throw UnsupportedError('WEBP encoding is not available in the isolate.');
+}
+
+Uint8List _exportInIsolate(_ExportArgs args) {
+  return ExportService.forTesting(_unavailableWebpEncoder)
+      ._compositeToBytes(args);
 }

@@ -146,6 +146,14 @@ class SettingsScreen extends StatelessWidget {
                 leading: const Icon(Icons.ios_share),
                 onTap: () => _shareApp(context),
               ),
+              ListTile(
+                title: Text(l10n.settingsLicenses),
+                leading: const Icon(Icons.description_outlined),
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: 'KatharErase',
+                ),
+              ),
             ],
           );
         },
