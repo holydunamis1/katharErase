@@ -60,6 +60,11 @@ class SettingsProvider extends ValueNotifier<UserSettings> {
     await _persist();
   }
 
+  Future<void> setRemindersEnabled(bool enabled) async {
+    value = value.copyWith(remindersEnabled: enabled);
+    await _persist();
+  }
+
   Future<void> setLanguage(String languageCode) async {
     value = value.copyWith(language: languageCode);
     await _persist();

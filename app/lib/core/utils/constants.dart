@@ -80,7 +80,7 @@ const int kInterstitialMinIntervalSeconds = 120;
 // Path A (Section 16) stays off until explicitly enabled post-launch.
 // ============================================================
 
-const bool kNotificationsEnabled = false;
+const bool kNotificationsEnabled = true; // unfinished-edit reminders
 const bool kCloudSyncEnabled = false;
 const bool kMlKitPathAEnabled = false; // Android-only enhancement, Section 16
 
@@ -109,4 +109,9 @@ const int kModelInputSize = 320; // model tensors: [1,320,320,3] -> [1,320,320,1
 // down once at load so mask building, brush replay and export stay fast and
 // within memory on mid-range phones.
 const int kMaxWorkingEdgePx = 2048;
+
+// --- Unfinished-edit reminder (local notification) ---
+// How long after leaving an unexported edit the reminder appears.
+const Duration kUnfinishedEditReminderDelay = Duration(hours: 3);
+const String kReminderChannelId = 'unfinished_edit';
 

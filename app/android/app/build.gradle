@@ -42,6 +42,8 @@ android {
     ndkVersion "28.2.13676358"
 
     compileOptions {
+        // Required by flutter_local_notifications (verified in its README).
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
@@ -111,10 +113,8 @@ flutter {
     source '../..'
 }
 
-// No coreLibraryDesugaring dependency added here — none of the pinned
-// plugins (tflite_flutter, camera, gal, sqflite, share_plus,
-// google_mobile_ads, in_app_purchase, permission_handler,
-// crop_your_image, flutter_image_compress, url_launcher,
-// app_tracking_transparency) were confirmed to require it. If a future
-// CI run surfaces a "use coreLibraryDesugaring" build error, that error
-// will name the specific requirement — better than guessing at one here.
+dependencies {
+    // Required by flutter_local_notifications; version as given in the
+    // plugin's own Gradle setup instructions.
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+}

@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import GoogleMobileAds
+import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -17,6 +18,7 @@ import GoogleMobileAds
     GADMobileAds.sharedInstance().start(completionHandler: nil)
 
     GeneratedPluginRegistrant.register(with: self)
+    UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

@@ -22,6 +22,9 @@ abstract class UserSettings with _$UserSettings {
     @Default(false) bool isAdFree,
     @Default(false) bool hasCompletedOnboarding,
     @Default(false) bool hasSeenAttPrompt,
+    // Unfinished-edit reminder notifications (on by default; the OS still
+    // asks for notification permission separately).
+    @Default(true) bool remindersEnabled,
   }) = _UserSettings;
 
   factory UserSettings.fromJson(Map<String, dynamic> json) =>

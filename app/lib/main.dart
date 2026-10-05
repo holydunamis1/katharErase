@@ -12,6 +12,8 @@ import 'core/providers/theme_provider.dart';
 import 'core/services/storage_service.dart';
 import 'core/utils/error_handler.dart';
 import 'platform/ad_service.dart';
+import 'core/utils/constants.dart';
+import 'platform/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +50,11 @@ Future<void> main() async {
 
   // AdMob init.
   await AdService.instance.initialize();
+
+  // Local notifications (unfinished-edit reminders). Failure-safe.
+  if (kNotificationsEnabled) {
+    await NotificationService.instance.init();
+  }
 
   // ATT request (post-onboarding) — safety net for RETURNING users whose
   // onboarding completed in a prior session but the app was killed before

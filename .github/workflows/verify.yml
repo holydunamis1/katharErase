@@ -78,3 +78,38 @@ jobs:
             exit 1
           fi
           echo "::notice title=TESTS PASSED::$msg"
+
+      # --- Android compile check (debug APK), so Gradle / desugaring /
+      # manifest problems are caught here rather than in the real build.
+      - name: Free up disk space
+        if: always()
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo apt-get clean
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK Platform 36
+        run: sdkmanager "platforms;android-36"
+
+      - name: Build debug APK (arm64)
+        working-directory: app
+        run: |
+          flutter build apk --debug --target-platform android-arm64 > /tmp/apk.txt 2>&1
+          code=$?
+          tail -n 40 /tmp/apk.txt
+          msg=$(tail -c 40000 /tmp/apk.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
+          if [ $code -ne 0 ]; then
+            echo "::error title=APK BUILD FAILED::$msg"
+            exit 1
+          fi
+          echo "::notice title=APK BUILD PASSED::$msg"
+

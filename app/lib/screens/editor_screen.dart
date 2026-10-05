@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -7,8 +8,11 @@ import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
+import '../core/providers/settings_provider.dart';
+import '../core/utils/constants.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../platform/image_prep_service.dart';
+import '../platform/notification_service.dart';
 import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/background_selector.dart';
@@ -31,15 +35,75 @@ class EditorScreen extends StatefulWidget {
   State<EditorScreen> createState() => _EditorScreenState();
 }
 
-class _EditorScreenState extends State<EditorScreen> {
+class _EditorScreenState extends State<EditorScreen>
+    with WidgetsBindingObserver {
   _EditorTab _tab = _EditorTab.auto;
   late final ImageEditProvider _provider;
+  late final SettingsProvider _settings;
+
+  // Reminder text, captured while a BuildContext is available so it can be
+  // used later from dispose / lifecycle callbacks.
+  String _reminderTitle = '';
+  String _reminderBody = '';
+  String _reminderChannelName = '';
+  String _reminderChannelDescription = '';
 
   @override
   void initState() {
     super.initState();
     _provider = Provider.of<ImageEditProvider>(context, listen: false);
+    _settings = Provider.of<SettingsProvider>(context, listen: false);
+    WidgetsBinding.instance.addObserver(this);
+    // The user is editing again: any pending reminder is obsolete.
+    unawaited(NotificationService.instance.cancelUnfinishedEditReminder());
+    if (kNotificationsEnabled && _settings.value.remindersEnabled) {
+      // At most one OS prompt per app session.
+      unawaited(NotificationService.instance.ensurePermissionOncePerSession());
+    }
     _loadAndSegment();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final l10n = AppLocalizations.of(context);
+    _reminderTitle = l10n.reminderTitle;
+    _reminderBody = l10n.reminderBody;
+    _reminderChannelName = l10n.reminderChannelName;
+    _reminderChannelDescription = l10n.reminderChannelDescription;
+  }
+
+  void _scheduleReminderIfUnfinished() {
+    if (!kNotificationsEnabled ||
+        !_settings.value.remindersEnabled ||
+        !_provider.hasUnfinishedEdit) {
+      return;
+    }
+    unawaited(
+      NotificationService.instance.scheduleUnfinishedEditReminder(
+        title: _reminderTitle,
+        body: _reminderBody,
+        channelName: _reminderChannelName,
+        channelDescription: _reminderChannelDescription,
+      ),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _scheduleReminderIfUnfinished();
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(NotificationService.instance.cancelUnfinishedEditReminder());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // Leaving the editor without exporting.
+    _scheduleReminderIfUnfinished();
+    super.dispose();
   }
 
   Future<void> _loadAndSegment() async {

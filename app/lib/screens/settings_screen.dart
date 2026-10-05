@@ -9,6 +9,7 @@ import '../core/providers/theme_provider.dart';
 import '../core/services/share_service.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../platform/iap_service.dart';
+import '../platform/notification_service.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/preference_sheets.dart';
 import '../widgets/toast_notification.dart';
@@ -120,6 +121,37 @@ class SettingsScreen extends StatelessWidget {
                       Text(languageLabel(l10n, settings.language)),
                 ),
                 onTap: () => showLanguageSheet(context),
+              ),
+              ValueListenableBuilder<UserSettings>(
+                valueListenable: settingsProvider,
+                builder: (context, settings, _) {
+                  return SwitchListTile(
+                    title: Text(l10n.settingsReminders),
+                    subtitle: Text(l10n.settingsRemindersSubtitle),
+                    value: settings.remindersEnabled,
+                    onChanged: (enabled) async {
+                      if (!enabled) {
+                        await settingsProvider.setRemindersEnabled(false);
+                        await NotificationService.instance
+                            .cancelUnfinishedEditReminder();
+                        return;
+                      }
+                      final granted =
+                          await NotificationService.instance.requestPermission();
+                      if (!granted) {
+                        if (context.mounted) {
+                          ToastNotification.show(
+                            context,
+                            message: l10n.settingsRemindersBlocked,
+                            type: ToastType.error,
+                          );
+                        }
+                        return;
+                      }
+                      await settingsProvider.setRemindersEnabled(true);
+                    },
+                  );
+                },
               ),
               const Divider(),
               ListTile(

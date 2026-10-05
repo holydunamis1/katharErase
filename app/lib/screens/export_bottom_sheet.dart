@@ -14,6 +14,7 @@ import '../core/services/export_service.dart';
 import '../core/services/share_service.dart';
 import '../core/services/storage_service.dart';
 import '../generated/l10n/app_localizations.dart';
+import '../platform/notification_service.dart';
 import '../widgets/loading_overlay.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/toast_notification.dart';
@@ -104,6 +105,10 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
         createdAt: DateTime.now(),
       );
       await StorageService.instance.saveExportJob(job);
+
+      // The edit is finished: no reminder needed.
+      imageProvider.markExported();
+      await NotificationService.instance.cancelUnfinishedEditReminder();
 
       final saved = await ShareService.instance.saveToGallery(exportBytes);
       if (!saved && context.mounted) {

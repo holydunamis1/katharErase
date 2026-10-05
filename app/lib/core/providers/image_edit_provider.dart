@@ -24,8 +24,20 @@ class ImageEditProvider extends ValueNotifier<EditableImageState> {
   // previous image can never overwrite the current one.
   int _loadToken = 0;
 
+  // True once the current image has been exported; used to decide whether
+  // to remind the user about an unfinished edit.
+  bool _exported = false;
+
+  /// An image is open in the editor and has not been exported yet.
+  bool get hasUnfinishedEdit => value.originalPath != null && !_exported;
+
+  void markExported() {
+    _exported = true;
+  }
+
   void loadImage(String path, Size imageSize) {
     _loadToken++;
+    _exported = false;
     value = EditableImageState(
       originalPath: path,
       imageSize: imageSize,
