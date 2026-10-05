@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:in_app_purchase/in_app_purchase.dart';
 
-const String kAdFreeMonthlyProductId =
-    'com.zdmgold.katharerase.adfree.monthly';
+/// One-time, non-consumable "remove ads" product. Create it in App Store
+/// Connect and Play Console with exactly this ID (type: non-consumable /
+/// one-time in-app product, price $14.99). There is no subscription.
+const String kAdFreeProductId = 'com.zdmgold.katharerase.adfree';
 
 class IapException implements Exception {
   const IapException(this.message, [this.cause]);
@@ -16,7 +18,7 @@ class IapException implements Exception {
 }
 
 /// StoreKit / Play Billing connection via in_app_purchase. Queries the
-/// adfree.monthly product, handles purchase/restore/acknowledge.
+/// ad-free one-time product, handles purchase/restore/acknowledge.
 ///
 /// *** Purchase validation approach — resolved in project discussion ***
 /// No backend receipt-validation call. This was a real trade-off, not a
@@ -28,11 +30,11 @@ class IapException implements Exception {
 /// the transaction JWS before the app ever sees it as valid — this is not
 /// blind client trust, a non-jailbroken device cannot fake a purchase this
 /// way. On Android, Play Billing's purchase token is somewhat weaker
-/// without server confirmation, but the value protected is $0.99/month —
+/// without server confirmation, but the value protected is a one-time ad-removal purchase —
 /// server-side validation earns its engineering cost on high-value
-/// unlocks, not a dollar-a-month ad-removal toggle where the realistic
-/// fraud population (people rooting/jailbreaking specifically to dodge
-/// $1/mo) is close to financially irrelevant at this app's scale.
+/// unlocks; for an ad-removal toggle the realistic fraud population
+/// (people rooting/jailbreaking specifically to dodge it) is close to
+/// financially irrelevant at this app's scale.
 ///
 /// [verifyPurchase] is intentionally the single seam where a future
 /// server call could be inserted (e.g. a Cloudflare Worker, given
@@ -106,13 +108,13 @@ class IapService {
 
   Future<ProductDetailsResponse> queryAdFreeProduct() async {
     try {
-      return await _iap.queryProductDetails({kAdFreeMonthlyProductId});
+      return await _iap.queryProductDetails({kAdFreeProductId});
     } catch (e) {
       throw IapException('Failed to query product details.', e);
     }
   }
 
-  Future<void> buyAdFreeSubscription(ProductDetails product) async {
+  Future<void> buyAdFree(ProductDetails product) async {
     try {
       final param = PurchaseParam(productDetails: product);
       await _iap.buyNonConsumable(purchaseParam: param);

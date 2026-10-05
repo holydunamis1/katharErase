@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 import 'core/providers/ad_provider.dart';
 import 'core/providers/image_edit_provider.dart';
 import 'core/providers/settings_provider.dart';
+import 'core/models/user_settings.dart';
 import 'core/providers/subscription_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/utils/constants.dart';
 import 'generated/l10n/app_localizations.dart';
 import 'router.dart';
+import 'widgets/preference_sheets.dart';
 
 /// MaterialApp, GoRouter, Directionality, theme injection, Provider.value
 /// tree.
@@ -58,18 +60,27 @@ class KatharEraseApp extends StatelessWidget {
           // future-proofing rather than load-bearing for the English-only
           // v1 locale (Section 5, File 50), kept per the manifest's
           // explicit listing rather than silently dropped as "unneeded."
-          return Directionality(
-            textDirection: TextDirection.ltr,
-            child: MaterialApp.router(
-              title: 'KatharErase',
-              debugShowCheckedModeBanner: false,
-              themeMode: themeMode,
-              theme: _buildTheme(Brightness.light),
-              darkTheme: _buildTheme(Brightness.dark),
-              routerConfig: router,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-            ),
+          return ValueListenableBuilder<UserSettings>(
+            valueListenable: settingsProvider,
+            builder: (context, settings, _) {
+              return Directionality(
+                textDirection: TextDirection.ltr,
+                child: MaterialApp.router(
+                  title: 'KatharErase',
+                  debugShowCheckedModeBanner: false,
+                  themeMode: themeMode,
+                  theme: _buildTheme(Brightness.light),
+                  darkTheme: _buildTheme(Brightness.dark),
+                  routerConfig: router,
+                  // null = follow the device language; otherwise the
+                  // user's manual choice from the language sheet.
+                  locale: localeForSetting(settings.language),
+                  localizationsDelegates:
+                      AppLocalizations.localizationsDelegates,
+                  supportedLocales: AppLocalizations.supportedLocales,
+                ),
+              );
+            },
           );
         },
       ),

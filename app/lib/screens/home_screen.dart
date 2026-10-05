@@ -8,13 +8,16 @@ import '../core/models/export_job.dart';
 import '../core/services/share_service.dart';
 import '../core/services/storage_service.dart';
 import '../generated/l10n/app_localizations.dart';
+import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/brand_wordmark.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/preference_sheets.dart';
 import '../widgets/recent_export_tile.dart';
 import '../widgets/toast_notification.dart';
 
-/// Logo, two big buttons (Camera, Gallery), recent exports grid (last 6),
-/// settings gear top-right.
+/// Wordmark left; language, theme and settings icons right. Two big buttons
+/// (Camera, Gallery), recent exports grid (last 6), banner ad at the bottom.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -102,15 +105,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return AppScaffold(
       appBar: AppBar(
-        title: Text(l10n.appTitle),
+        centerTitle: false,
+        title: const BrandWordmark(),
         actions: [
           IconButton(
+            tooltip: l10n.settingsLanguage,
+            icon: const Icon(Icons.translate),
+            onPressed: () => showLanguageSheet(context),
+          ),
+          IconButton(
+            tooltip: l10n.settingsTheme,
+            icon: const Icon(Icons.palette_outlined),
+            onPressed: () => showThemeSheet(context),
+          ),
+          IconButton(
+            tooltip: l10n.settingsTitle,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => context.push('/settings'),
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: Column(
+        children: [
+          Expanded(
+            child: RefreshIndicator(
         onRefresh: _loadRecent,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -169,6 +187,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+            ),
+          ),
+          const AdBannerSlot(personalized: false),
+        ],
       ),
     );
   }

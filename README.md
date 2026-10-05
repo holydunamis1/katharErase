@@ -1,6 +1,6 @@
 # KatharErase
 
-Remove photo backgrounds instantly. Free, with ads. Go ad-free for $0.99/mo.
+Remove photo backgrounds instantly. Free, with ads. Remove ads with a one-time $14.99 purchase.
 
 ## Repo layout
 
@@ -51,7 +51,7 @@ Both pipelines run `dart run build_runner build` (generates `.freezed.dart`/
 - **ML segmentation**: Path B default — `tflite_flutter` + a bundled
   U2-Net model, cross-platform. See `segmentation_service.dart` for
   the still-open product-photo quality verification requirement.
-- **Monetization**: ad-supported free tier (Google AdMob) + $0.99/mo
+- **Monetization**: ad-supported free tier (Google AdMob) + one-time $14.99 ad-removal purchase (non-consumable, product ID `com.zdmgold.katharerase.adfree`)
   IAP to remove ads, with zero feature gating either way. IAP
   validation is on-device only (no backend) — see `iap_service.dart`
   for the reasoning.

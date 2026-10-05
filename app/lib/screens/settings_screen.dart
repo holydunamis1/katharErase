@@ -3,20 +3,22 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/models/user_settings.dart';
 import '../core/providers/settings_provider.dart';
 import '../core/providers/theme_provider.dart';
 import '../core/services/share_service.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../platform/iap_service.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/preference_sheets.dart';
 import '../widgets/toast_notification.dart';
 
 // Pending real values per Section 1a's tracking table (Privacy Policy URL,
 // Support URL both show "Pending" there). Bracket placeholders, not
 // invented-looking values — matches the convention already established
 // for AdMob unit IDs in constants.dart.
-const String _kPrivacyPolicyUrl = 'https://katharerase.[YOUR_DOMAIN]/privacy.html';
-const String _kSupportUrl = 'https://katharerase.[YOUR_DOMAIN]/support.html';
+const String _kPrivacyPolicyUrl = 'https://katharerase.holydunamis1.workers.dev/privacy';
+const String _kSupportUrl = 'https://katharerase.holydunamis1.workers.dev/support';
 const String _kIosAppStoreId = '[YOUR_IOS_APP_STORE_ID]';
 const String _kAndroidPackageId = 'com.zdmgold.katharerase'; // locked, Section 1a
 
@@ -112,7 +114,12 @@ class SettingsScreen extends StatelessWidget {
               ),
               ListTile(
                 title: Text(l10n.settingsLanguage),
-                trailing: Text(l10n.settingsLanguageValue), // English only at v1
+                trailing: ValueListenableBuilder<UserSettings>(
+                  valueListenable: settingsProvider,
+                  builder: (context, settings, _) =>
+                      Text(languageLabel(l10n, settings.language)),
+                ),
+                onTap: () => showLanguageSheet(context),
               ),
               const Divider(),
               ListTile(

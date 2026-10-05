@@ -76,6 +76,6 @@
 		Bracket placeholder, not a fabricated ID.
 	-->
 	<key>GADApplicationIdentifier</key>
-	<string>[YOUR_ADMOB_IOS_APP_ID]</string>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
 </dict>
 </plist>

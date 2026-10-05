@@ -33,11 +33,7 @@ class _FullScreenErrorRecovery extends StatelessWidget {
 
   final FlutterErrorDetails details;
 
-  // Bracket placeholder, matching the convention already established in
-  // Section 1a (e.g. [YOUR_ADMOB_BANNER_ANDROID]) — no support email
-  // exists yet (Section 1a shows Support URL as Pending), so no
-  // plausible-looking value is invented here.
-  static const String _supportEmail = '[YOUR_SUPPORT_EMAIL]';
+  static const String _supportEmail = 'stmakarios@gmail.com';
 
   /// Localization retrofit note: this widget can render before
   /// MaterialApp/Localizations is mounted (e.g. an error during app.dart's

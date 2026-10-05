@@ -10,7 +10,7 @@ import '../widgets/app_scaffold.dart';
 import '../widgets/primary_button.dart';
 
 /// 3 pages: Auto-remove demo, Manual brush demo, "Free with ads — go
-/// ad-free for $0.99" explanation. "Get Started" button.
+/// ad-free with a one-time purchase" explanation. "Get Started" button.
 ///
 /// Asset note: assets/images/onboarding_*.png are Phase 9 files (74-76),
 /// not yet placed on disk at the time this screen is written. Image.asset

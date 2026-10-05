@@ -10,7 +10,7 @@ import '../widgets/primary_button.dart';
 import '../widgets/toast_notification.dart';
 
 /// Non-blocking. "Go Ad-Free." Comparison: Free (with ads) vs Ad-Free
-/// ($0.99/mo). Restore Purchases button. No feature list — because all
+/// (one-time purchase, price from the store). Restore Purchases button. No feature list — because all
 /// features are free (Section 5 File 46's own stated reasoning).
 class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key});
@@ -21,6 +21,26 @@ class PaywallScreen extends StatefulWidget {
 
 class _PaywallScreenState extends State<PaywallScreen> {
   bool _isPurchasing = false;
+
+  /// Localized price string from the store (e.g. "$14.99"), once loaded.
+  /// Never hardcoded, so it is always correct for the user's country.
+  String? _price;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrice();
+  }
+
+  Future<void> _loadPrice() async {
+    try {
+      final response = await IapService.instance.queryAdFreeProduct();
+      if (!mounted || response.productDetails.isEmpty) return;
+      setState(() => _price = response.productDetails.first.price);
+    } catch (_) {
+      // Price stays generic ("One-time purchase"); purchase still works.
+    }
+  }
 
   Future<void> _purchase(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
@@ -37,7 +57,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         }
         return;
       }
-      await IapService.instance.buyAdFreeSubscription(response.productDetails.first);
+      await IapService.instance.buyAdFree(response.productDetails.first);
     } catch (e) {
       if (context.mounted) {
         ToastNotification.show(context, message: l10n.paywallPurchaseFailed, type: ToastType.error);
@@ -109,7 +129,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     Expanded(
                       child: _PlanCard(
                         title: l10n.paywallPlanAdFreeTitle,
-                        price: l10n.paywallPlanAdFreePrice,
+                        price: _price ?? l10n.paywallPlanAdFreePrice,
                         bullets: [l10n.paywallFeatureAllFeatures, l10n.paywallFeatureZeroAds],
                         highlighted: true,
                       ),
@@ -118,7 +138,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 ),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  label: l10n.paywallPurchaseButton,
+                  label: _price == null
+                      ? l10n.paywallPurchaseButton
+                      : l10n.paywallPurchaseButtonPrice(_price!),
                   isLoading: _isPurchasing,
                   onPressed: () => _purchase(context),
                 ),

@@ -62,18 +62,14 @@ const String kTestBannerAdUnitIdIos =
 const String kTestInterstitialAdUnitIdIos =
     'ca-app-pub-3940256099942544/4411468910';
 
-// Production IDs — populate after AdMob dashboard setup (Section 14/15).
-// DO NOT replace these placeholders with invented-looking values — leave
-// as-is until the real AdMob dashboard IDs exist.
-const String kProdBannerAdUnitIdAndroid = '[YOUR_ADMOB_BANNER_ANDROID]';
-const String kProdBannerAdUnitIdIos = '[YOUR_ADMOB_BANNER_IOS]';
+// "Production" IDs — currently Google's official test IDs (verified against
+// Google's AdMob documentation) so no placeholder strings exist anywhere.
+// Replace with the real AdMob unit IDs before publishing to the stores.
+const String kProdBannerAdUnitIdAndroid = kTestBannerAdUnitIdAndroid;
+const String kProdBannerAdUnitIdIos = kTestBannerAdUnitIdIos;
 const String kProdInterstitialAdUnitIdAndroid =
-    '[YOUR_ADMOB_INTERSTITIAL_ANDROID]';
-const String kProdInterstitialAdUnitIdIos = '[YOUR_ADMOB_INTERSTITIAL_IOS]';
-
-// ============================================================
-// AD CAPPING CONFIG
-// ============================================================
+    kTestInterstitialAdUnitIdAndroid;
+const String kProdInterstitialAdUnitIdIos = kTestInterstitialAdUnitIdIos;
 
 const int kInterstitialMinIntervalSeconds = 120;
 

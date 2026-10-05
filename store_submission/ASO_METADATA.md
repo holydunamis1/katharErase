@@ -8,7 +8,7 @@
 
 **Promotional Text (170 char max):**
 Remove backgrounds instantly. Every feature is free — no watermark,
-no account. Go ad-free anytime for $0.99/mo. No forced subscription.
+no account. Remove ads anytime with a one-time $14.99 purchase. No subscription.
 
 **Keywords (100 char max, comma-separated, no spaces):**
 background remover,remove bg,photo editor,eraser,transparent,cutout,depop,product photo
@@ -21,7 +21,7 @@ account required.
 KatharErase uses on-device AI to remove backgrounds instantly, with a
 manual brush tool to fine-tune any edges the AI misses. Every one of
 our 14 features is completely free — we only ask you to view ads to
-keep the app running, and you can remove those for $0.99/month if
+keep the app running, and you can remove those with a one-time $14.99 purchase if
 you'd rather not.
 
 FEATURES
@@ -42,7 +42,7 @@ ever.
 **Title (30 char max):** KatharErase: Remove BG
 
 **Short Description (80 char max):**
-Remove photo backgrounds free. No watermark, no account. $0.99/mo removes ads.
+Remove photo backgrounds free. No watermark, no account. $14.99 once removes ads.
 
 **Full Description:** (reuse App Store description above — Play allows longer body text; same content is fine.)
 
