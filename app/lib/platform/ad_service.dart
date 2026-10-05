@@ -35,11 +35,27 @@ class AdService {
     return (kReleaseMode && !prodId.contains('[')) ? prodId : testId;
   }
 
-  Future<void> initialize() async {
+  Future<void>? _initFuture;
+
+  /// Idempotent: every caller shares one initialization. This is started in
+  /// the background after the first frame (see main.dart) because the SDK
+  /// can take many seconds — or never call back — on some networks/devices.
+  Future<void> initialize() => _initFuture ??= _initialize();
+
+  Future<void> _initialize() async {
     try {
       await MobileAds.instance.initialize();
     } catch (e) {
       debugPrint('AdMob initialization failed: $e');
+    }
+  }
+
+  /// Lets ad loads wait for SDK initialization, but never forever.
+  Future<void> _waitUntilInitialized() async {
+    try {
+      await initialize().timeout(const Duration(seconds: 20));
+    } catch (_) {
+      // Proceed anyway; the load itself has its own timeout.
     }
   }
 
@@ -63,6 +79,7 @@ class AdService {
     required void Function(Ad ad) onLoaded,
     required void Function(Ad ad, LoadAdError error) onFailed,
   }) async {
+    await _waitUntilInitialized();
     final banner = BannerAd(
       adUnitId: bannerAdUnitId,
       size: AdSize.banner,
@@ -111,6 +128,7 @@ class AdService {
       if (elapsed < kInterstitialMinIntervalSeconds) return false;
     }
 
+    await _waitUntilInitialized();
     final completer = Completer<bool>();
     try {
       await InterstitialAd.load(

@@ -17,7 +17,7 @@ adb logcat -d -v threadtime > /tmp/full.txt
   echo "install: $(tail -1 /tmp/install.txt) | first pid: $PID | pid after 76s: ${ALIVE:-NONE (process gone)}"
   adb shell dumpsys activity activities | grep -E "topResumedActivity" | head -1 | cut -c1-140
   echo "=== BOOT trace + flutter errors (all pids) ==="
-  grep -E "BOOT|E flutter|F flutter|Unhandled|Exception|FATAL EXCEPTION|Fatal signal|ANR in $PKG|am_crash|am_proc_died" /tmp/full.txt | grep -v -E "AppOps|PeoplePU|Corpus|MediaScanner|Cronet" | cut -c7-260 | head -n 60
+  grep -E "I flutter *: BOOT|E flutter|F flutter|Unhandled|FATAL EXCEPTION|Fatal signal|ANR in $PKG|am_crash|am_proc_died" /tmp/full.txt | grep -v -E "AppOps|PeoplePU|Corpus|MediaScanner|Cronet" | cut -c7-260 | head -n 60
   echo "=== ad/notification related lines from the app process ==="
   grep -E "^[0-9-]+ [0-9:.]+ +[0-9]+ +[0-9]+ [A-Z] (Ads|gads|MobileAds|FlutterLocalNotif|FlutterLocalNotifications|GoogleMobileAds)" /tmp/full.txt | cut -c7-240 | head -n 20
   echo "=== activity lifecycle (our package) ==="

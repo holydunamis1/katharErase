@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart'
     show LicenseEntryWithLineBreaks, LicenseRegistry, debugPrint;
 import 'package:flutter/material.dart';
@@ -16,6 +18,52 @@ import 'core/utils/constants.dart';
 import 'platform/notification_service.dart';
 
 void _boot(String step) => debugPrint('BOOT $step');
+
+/// Runs [task] but never lets it block or crash startup: failures and
+/// timeouts are logged and startup continues with defaults.
+Future<void> _guard(
+  String name,
+  Future<void> Function() task,
+  Duration timeout,
+) async {
+  try {
+    await task().timeout(timeout);
+    _boot('$name ok');
+  } catch (e) {
+    _boot('$name FAILED or TIMED OUT: $e');
+  }
+}
+
+/// Everything that is not needed to draw the first screen. Runs after
+/// runApp so a slow or stuck SDK (ads especially) can never leave the user
+/// staring at the splash screen.
+Future<void> _startBackgroundServices(SettingsProvider settingsProvider) async {
+  if (kNotificationsEnabled) {
+    await _guard(
+      'notifications init',
+      NotificationService.instance.init,
+      const Duration(seconds: 15),
+    );
+  }
+
+  // ATT request — safety net for RETURNING users whose onboarding completed
+  // in a prior session but the app was killed before ATT could show. The
+  // first-run case is handled in onboarding_screen.dart's _finish().
+  if (settingsProvider.value.hasCompletedOnboarding &&
+      !settingsProvider.value.hasSeenAttPrompt) {
+    await _guard('att', () async {
+      await AdService.instance.requestTrackingAuthorization();
+      await settingsProvider.markAttPromptSeen();
+    }, const Duration(seconds: 60));
+  }
+
+  // Ads last: after ATT (iOS), and slowest, so it blocks nothing.
+  await _guard(
+    'ads init',
+    AdService.instance.initialize,
+    const Duration(seconds: 45),
+  );
+}
 
 Future<void> main() async {
   _boot('main start');
@@ -42,39 +90,17 @@ Future<void> main() async {
   // sqflite init (File 47) — eagerly open/create the database so any
   // first-use failure surfaces here, wrapped in try/catch, rather than
   // silently on first export/history read.
-  await StorageService.instance.initialize();
-  _boot('storage ready');
+  await _guard('storage', StorageService.instance.initialize,
+      const Duration(seconds: 8));
 
   // Providers are created here (not inside app.dart) so their async load
   // steps can complete before the first frame — avoids a flash of the
   // wrong theme or a moment where settings appear unset.
   final themeProvider = ThemeProvider();
   final settingsProvider = SettingsProvider();
-  await themeProvider.load();
-  await settingsProvider.load();
-  _boot('theme+settings loaded');
-
-  // AdMob init.
-  await AdService.instance.initialize();
-  _boot('ads initialized');
-
-  // Local notifications (unfinished-edit reminders). Failure-safe.
-  if (kNotificationsEnabled) {
-    await NotificationService.instance.init();
-  }
-  _boot('notifications initialized');
-
-  // ATT request (post-onboarding) — safety net for RETURNING users whose
-  // onboarding completed in a prior session but the app was killed before
-  // ATT could show. The immediate first-run case is handled directly in
-  // onboarding_screen.dart's _finish(), at the exact moment onboarding
-  // completes — main.dart's startup code here runs before onboarding UI
-  // ever shows in a first-run session, so it can't catch that case itself.
-  if (settingsProvider.value.hasCompletedOnboarding &&
-      !settingsProvider.value.hasSeenAttPrompt) {
-    await AdService.instance.requestTrackingAuthorization();
-    await settingsProvider.markAttPromptSeen();
-  }
+  await _guard('theme load', themeProvider.load, const Duration(seconds: 5));
+  await _guard(
+      'settings load', settingsProvider.load, const Duration(seconds: 5));
 
   // IAP init — subscriptionProvider seeds its initial value from
   // settingsProvider's cached isAdFree (Gap 6 resolution) before the live
@@ -95,5 +121,8 @@ Future<void> main() async {
       imageEditProvider: imageEditProvider,
     ),
   );
-  WidgetsBinding.instance.addPostFrameCallback((_) => _boot('first frame drawn'));
+  WidgetsBinding.instance
+      .addPostFrameCallback((_) => _boot('first frame drawn'));
+
+  unawaited(_startBackgroundServices(settingsProvider));
 }
