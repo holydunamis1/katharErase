@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart'
-    show LicenseEntryWithLineBreaks, LicenseRegistry;
+    show LicenseEntryWithLineBreaks, LicenseRegistry, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -15,8 +15,12 @@ import 'platform/ad_service.dart';
 import 'core/utils/constants.dart';
 import 'platform/notification_service.dart';
 
+void _boot(String step) => debugPrint('BOOT $step');
+
 Future<void> main() async {
+  _boot('main start');
   WidgetsFlutterBinding.ensureInitialized();
+  _boot('binding ready');
   AppErrorHandler.init();
 
   // Apache-2.0 attribution for the bundled segmentation model (U2-Netp),
@@ -39,6 +43,7 @@ Future<void> main() async {
   // first-use failure surfaces here, wrapped in try/catch, rather than
   // silently on first export/history read.
   await StorageService.instance.initialize();
+  _boot('storage ready');
 
   // Providers are created here (not inside app.dart) so their async load
   // steps can complete before the first frame — avoids a flash of the
@@ -47,14 +52,17 @@ Future<void> main() async {
   final settingsProvider = SettingsProvider();
   await themeProvider.load();
   await settingsProvider.load();
+  _boot('theme+settings loaded');
 
   // AdMob init.
   await AdService.instance.initialize();
+  _boot('ads initialized');
 
   // Local notifications (unfinished-edit reminders). Failure-safe.
   if (kNotificationsEnabled) {
     await NotificationService.instance.init();
   }
+  _boot('notifications initialized');
 
   // ATT request (post-onboarding) — safety net for RETURNING users whose
   // onboarding completed in a prior session but the app was killed before
@@ -77,6 +85,7 @@ Future<void> main() async {
   final adProvider = AdProvider(subscriptionProvider);
   final imageEditProvider = ImageEditProvider();
 
+  _boot('calling runApp');
   runApp(
     KatharEraseApp(
       themeProvider: themeProvider,
@@ -86,4 +95,5 @@ Future<void> main() async {
       imageEditProvider: imageEditProvider,
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) => _boot('first frame drawn'));
 }
