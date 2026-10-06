@@ -10,7 +10,19 @@ adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 > /dev/null 2>&1
 sleep 6
 PID=$(adb shell pidof "$PKG" | tr -d '\r')
-sleep 70
+# Ask the (frozen) app where its Dart code is, via the VM service.
+sleep 22
+VMLINE=$(adb logcat -d | grep -m1 "Dart VM service is listening on")
+PORT=$(echo "$VMLINE" | sed -n 's#.*127.0.0.1:\([0-9]*\)/.*#\1#p')
+TOKEN=$(echo "$VMLINE" | sed -n 's#.*127.0.0.1:[0-9]*/\([^/ ]*\)/.*#\1#p')
+echo "vm service port=$PORT token_len=${#TOKEN}" > /tmp/dartstack.txt
+if [ -n "$PORT" ]; then
+  adb forward "tcp:$PORT" "tcp:$PORT" >> /tmp/dartstack.txt 2>&1
+  ( cd .github/scripts/dart_stack && dart pub get > /tmp/dartstack_pub.txt 2>&1 \
+    && timeout 90 dart run bin/stack.dart "ws://127.0.0.1:$PORT/$TOKEN/ws" >> /tmp/dartstack.txt 2>&1 ) \
+    || echo "stack tool failed: $(tail -3 /tmp/dartstack_pub.txt)" >> /tmp/dartstack.txt
+fi
+sleep 30
 ALIVE=$(adb shell pidof "$PKG" | tr -d '\r')
 # The system saves an ANR trace (all thread stacks) when it reports an ANR.
 adb root > /dev/null 2>&1; sleep 3
@@ -24,6 +36,8 @@ adb logcat -d -v threadtime > /tmp/full.txt
   adb shell dumpsys activity activities | grep -E "topResumedActivity" | head -1 | cut -c1-140
   echo "=== BOOT trace + flutter errors (all pids) ==="
   grep -E "I flutter *: BOOT|E flutter|F flutter|Unhandled|FATAL EXCEPTION|Fatal signal|ANR in $PKG|am_crash|am_proc_died" /tmp/full.txt | grep -v -E "AppOps|PeoplePU|Corpus|MediaScanner|Cronet" | cut -c7-260 | head -n 60
+  echo "=== DART STACK of the running app (VM service) ==="
+  head -n 90 /tmp/dartstack.txt | cut -c1-210
   echo "=== ANR reason ==="
   grep -A 6 "ANR in $PKG" /tmp/full.txt | cut -c7-240 | head -n 12
   echo "=== anr files: $(tr '\r\n' '  ' < /tmp/anr_files.txt | cut -c1-120)  (anr bytes: $(wc -c < /tmp/anr_all.txt))"
