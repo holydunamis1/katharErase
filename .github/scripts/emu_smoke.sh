@@ -35,7 +35,7 @@ adb logcat -d -v threadtime > /tmp/full.txt
   echo "install: $(tail -1 /tmp/install.txt) | first pid: $PID | pid after 76s: ${ALIVE:-NONE (process gone)}"
   adb shell dumpsys activity activities | grep -E "topResumedActivity" | head -1 | cut -c1-140
   echo "=== BOOT trace + flutter errors (all pids) ==="
-  grep -E "I flutter *: BOOT|E flutter|F flutter|Unhandled|FATAL EXCEPTION|Fatal signal|ANR in $PKG|am_crash|am_proc_died" /tmp/full.txt | grep -v -E "AppOps|PeoplePU|Corpus|MediaScanner|Cronet" | cut -c7-260 | head -n 60
+  grep -E "I flutter *: (BOOT|APPERR)|E flutter|F flutter|Unhandled|FATAL EXCEPTION|Fatal signal|ANR in $PKG|am_crash|am_proc_died" /tmp/full.txt | grep -v -E "AppOps|PeoplePU|Corpus|MediaScanner|Cronet" | cut -c7-260 | head -n 75
   echo "=== DART STACK of the running app (VM service) ==="
   head -n 90 /tmp/dartstack.txt | cut -c1-210
   echo "=== ANR reason ==="

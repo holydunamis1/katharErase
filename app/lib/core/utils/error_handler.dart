@@ -16,10 +16,22 @@ class AppErrorHandler {
   /// Call once from main.dart before runApp().
   static void init() {
     FlutterError.onError = (FlutterErrorDetails details) {
-      FlutterError.presentError(details);
-      if (kReleaseMode) {
-        // Swallow in release: ErrorWidget.builder below shows the recovery UI.
+      // Always log a short, cheap summary first (no stack parsing).
+      final message = details.exceptionAsString();
+      final stackLines = (details.stack?.toString() ?? '').split('\n');
+      debugPrint(
+        'APPERR ${details.exception.runtimeType}: '
+        '${message.length > 600 ? message.substring(0, 600) : message}',
+      );
+      debugPrint('APPERR stack lines=${stackLines.length}');
+      for (final line in stackLines.take(25)) {
+        debugPrint('APPERR   $line');
       }
+      // A runaway stack (e.g. infinite recursion) makes Flutter's debug
+      // inspector spend minutes parsing it line by line, which froze the
+      // whole app before it could show anything. Skip presenting those.
+      if (stackLines.length > 300) return;
+      FlutterError.presentError(details);
     };
 
     ErrorWidget.builder = (FlutterErrorDetails details) {
