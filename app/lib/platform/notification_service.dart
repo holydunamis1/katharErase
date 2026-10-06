@@ -1,11 +1,15 @@
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../core/utils/constants.dart';
 
 /// Local "you have an unfinished edit" reminder.
+///
+/// The reminder is scheduled as an absolute instant in UTC, which needs no
+/// time-zone database. (Do NOT call tz.initializeTimeZones() here: parsing
+/// the whole database is CPU-heavy and froze the first frame on slow
+/// devices.)
 ///
 /// Every method is failure-safe: a notification problem must never break
 /// editing or exporting, so errors are logged and swallowed. Nothing is
@@ -28,7 +32,6 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
     try {
-      tzdata.initializeTimeZones();
       const android = AndroidInitializationSettings('@mipmap/ic_launcher');
       // Permission is requested explicitly later, at a sensible moment,
       // not as a surprise prompt at launch.

@@ -121,8 +121,10 @@ Future<void> main() async {
       imageEditProvider: imageEditProvider,
     ),
   );
-  WidgetsBinding.instance
-      .addPostFrameCallback((_) => _boot('first frame drawn'));
-
-  unawaited(_startBackgroundServices(settingsProvider));
+  // Background services start only AFTER the first frame is on screen, so
+  // nothing they do can ever delay the UI appearing.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _boot('first frame drawn');
+    unawaited(_startBackgroundServices(settingsProvider));
+  });
 }
