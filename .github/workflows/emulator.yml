@@ -1,10 +1,10 @@
 name: Emulator smoke test
 
 # Installs the debug APK on a real Android emulator, launches it, and
-# reports the startup log as an annotation. Triggered by pushes to emu/**.
+# reports the startup log as an annotation.
+# MANUAL ONLY: this workflow builds APKs, and APK builds must never start
+# automatically. Run it from the Actions tab when needed.
 on:
-  push:
-    branches: ['emu/**']
   workflow_dispatch:
 
 permissions:

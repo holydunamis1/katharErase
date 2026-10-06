@@ -1,6 +1,8 @@
 name: Verify (analyze + test)
 
-# Fast feedback only: no APK/AAB. Runs on pushes to verify/** branches.
+# Fast feedback only. On pushes to verify/** branches it runs analyze + tests
+# and builds NO APK. The Android compile check at the bottom runs only when
+# this workflow is started manually.
 # Full analyzer and test output is written into annotations so it can be
 # read without downloading logs.
 on:
@@ -58,7 +60,10 @@ jobs:
           flutter analyze > /tmp/analyze.txt 2>&1
           code=$?
           cat /tmp/analyze.txt
-          msg=$(head -c 40000 /tmp/analyze.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
+          # Compact report (issue lines only) so it fits in an annotation.
+          grep -E "(error|warning|info) •" /tmp/analyze.txt | cut -c1-230 | head -n 25 > /tmp/analyze_short.txt
+          [ -s /tmp/analyze_short.txt ] || tail -n 5 /tmp/analyze.txt > /tmp/analyze_short.txt
+          msg=$(head -c 3500 /tmp/analyze_short.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
           if [ $code -ne 0 ]; then
             echo "::error title=ANALYZE FAILED::$msg"
             exit 1
@@ -72,7 +77,7 @@ jobs:
           flutter test --reporter expanded > /tmp/test.txt 2>&1
           code=$?
           cat /tmp/test.txt
-          msg=$(tail -c 40000 /tmp/test.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
+          msg=$(tail -c 3500 /tmp/test.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
           if [ $code -ne 0 ]; then
             echo "::error title=TESTS FAILED::$msg"
             exit 1
@@ -82,7 +87,7 @@ jobs:
       # --- Android compile check (debug APK), so Gradle / desugaring /
       # manifest problems are caught here rather than in the real build.
       - name: Free up disk space
-        if: always()
+        if: github.event_name == 'workflow_dispatch'
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -90,17 +95,21 @@ jobs:
           sudo apt-get clean
 
       - uses: actions/setup-java@v4
+        if: github.event_name == 'workflow_dispatch'
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Android SDK
+        if: github.event_name == 'workflow_dispatch'
         uses: android-actions/setup-android@v4
 
       - name: Install Android SDK Platform 36
+        if: github.event_name == 'workflow_dispatch'
         run: sdkmanager "platforms;android-36"
 
       - name: Build debug APK (arm64)
+        if: github.event_name == 'workflow_dispatch'
         working-directory: app
         run: |
           flutter build apk --debug --target-platform android-arm64 > /tmp/apk.txt 2>&1
