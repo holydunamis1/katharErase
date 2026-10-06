@@ -63,4 +63,25 @@ chunks.append(cur)
 for i,c in enumerate(chunks[:9],1):
     print(f"::notice title=EMU LOG {i}/{len(chunks)}::{esc(c)}")
 PY
+
+# ---- Phase 2: the RELEASE build (what testers/stores get) ----
+REL=app/build/app/outputs/flutter-apk/app-release.apk
+adb uninstall "$PKG" > /dev/null 2>&1
+adb install -r "$REL" > /tmp/rinstall.txt 2>&1
+adb logcat -c
+adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 > /dev/null 2>&1
+sleep 45
+RALIVE=$(adb shell pidof "$PKG" | tr -d '\r')
+adb logcat -d -v threadtime > /tmp/rfull.txt
+{
+  echo "RELEASE install: $(tail -1 /tmp/rinstall.txt) | pid after 45s: ${RALIVE:-NONE (process gone)}"
+  adb shell dumpsys activity activities | grep -E "topResumedActivity" | head -1 | cut -c1-140
+  grep -E "I flutter *: (BOOT|APPERR)|E flutter|ANR in $PKG|FATAL EXCEPTION|Fatal signal" /tmp/rfull.txt | cut -c7-240 | head -n 30
+} > /tmp/release.txt
+cat /tmp/release.txt
+python3 - <<'PY'
+t=open('/tmp/release.txt').read()
+esc=lambda s:s.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+print("::notice title=EMU LOG release::"+esc(t[:3500]))
+PY
 exit 0

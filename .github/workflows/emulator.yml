@@ -43,6 +43,7 @@ jobs:
           flutter pub get
           dart run build_runner build --delete-conflicting-outputs
           flutter build apk --debug --target-platform android-x64
+          flutter build apk --release --target-platform android-x64 --obfuscate --split-debug-info=symbols
 
       - name: Enable KVM
         run: |

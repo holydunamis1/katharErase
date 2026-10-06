@@ -77,11 +77,15 @@ class _FullScreenErrorRecovery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = _strings(context);
-    return Material(
+    // This widget can be built outside MaterialApp, where there is no
+    // Directionality, MediaQuery or Navigator — so it supplies its own and
+    // never depends on them (a recovery screen must not crash itself).
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Material(
       color: Theme.of(context).scaffoldBackgroundColor,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+      child: Padding(
+          padding: const EdgeInsets.fromLTRB(24.0, 48.0, 24.0, 24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -97,7 +101,7 @@ class _FullScreenErrorRecovery extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () {
-                  Navigator.of(context).maybePop();
+                  Navigator.maybeOf(context)?.maybePop();
                 },
                 child: Text(strings.goBack),
               ),
