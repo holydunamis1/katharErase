@@ -33,8 +33,8 @@ jobs:
       - name: Install dependencies
         working-directory: app
         run: |
-          flutter pub get > /tmp/pubget.txt 2>&1
-          code=$?
+          code=0
+          flutter pub get > /tmp/pubget.txt 2>&1 || code=$?
           cat /tmp/pubget.txt
           if [ $code -ne 0 ]; then
             msg=$(tail -c 20000 /tmp/pubget.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
@@ -45,8 +45,8 @@ jobs:
       - name: Generate code
         working-directory: app
         run: |
-          dart run build_runner build --delete-conflicting-outputs > /tmp/gen.txt 2>&1
-          code=$?
+          code=0
+          dart run build_runner build --delete-conflicting-outputs > /tmp/gen.txt 2>&1 || code=$?
           tail -n 30 /tmp/gen.txt
           if [ $code -ne 0 ]; then
             msg=$(tail -c 20000 /tmp/gen.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
@@ -57,8 +57,8 @@ jobs:
       - name: Analyze
         working-directory: app
         run: |
-          flutter analyze > /tmp/analyze.txt 2>&1
-          code=$?
+          code=0
+          flutter analyze > /tmp/analyze.txt 2>&1 || code=$?
           cat /tmp/analyze.txt
           # Compact report (issue lines only) so it fits in an annotation.
           grep -E "(error|warning|info) •" /tmp/analyze.txt | cut -c1-230 | head -n 25 > /tmp/analyze_short.txt
@@ -74,8 +74,8 @@ jobs:
         if: always()
         working-directory: app
         run: |
-          flutter test --reporter expanded > /tmp/test.txt 2>&1
-          code=$?
+          code=0
+          flutter test --reporter expanded > /tmp/test.txt 2>&1 || code=$?
           cat /tmp/test.txt
           msg=$(tail -c 3500 /tmp/test.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
           if [ $code -ne 0 ]; then
@@ -112,8 +112,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         working-directory: app
         run: |
-          flutter build apk --debug --target-platform android-arm64 > /tmp/apk.txt 2>&1
-          code=$?
+          code=0
+          flutter build apk --debug --target-platform android-arm64 > /tmp/apk.txt 2>&1 || code=$?
           tail -n 40 /tmp/apk.txt
           msg=$(tail -c 40000 /tmp/apk.txt | python3 -c "import sys; t=sys.stdin.read(); print(t.replace('%','%25').replace('\r','%0D').replace('\n','%0A'),end='')")
           if [ $code -ne 0 ]; then
