@@ -47,5 +47,10 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(HomeScreen), findsOneWidget);
+
+    // Let the banner-ad load timeouts (up to 20 s) fire on the fake clock:
+    // checks nothing throws when they do, and leaves no timers pending.
+    await tester.pump(const Duration(seconds: 31));
+    expect(tester.takeException(), isNull);
   });
 }
