@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart'
     show LicenseEntryWithLineBreaks, LicenseRegistry, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:provider/provider.dart' show Provider;
 
 import 'app.dart';
 import 'core/providers/ad_provider.dart';
@@ -71,12 +70,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _boot('binding ready');
 
-  // package:provider asserts, in DEBUG builds only, that Provider.value is
-  // never given a Listenable (ValueNotifier). This app deliberately uses
-  // ValueNotifier + ListenableBuilder and Provider purely for dependency
-  // injection (see app.dart), so that check must be switched off — otherwise
-  // every debug build throws on its very first build.
-  Provider.debugCheckInvalidValueType = null;
   AppErrorHandler.init();
 
   // Apache-2.0 attribution for the bundled segmentation model (U2-Netp),

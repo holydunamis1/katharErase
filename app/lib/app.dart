@@ -41,6 +41,15 @@ class KatharEraseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // package:provider asserts, in DEBUG builds only, that Provider.value is
+    // never given a Listenable (ValueNotifier). This app deliberately uses
+    // ValueNotifier + ListenableBuilder with Provider purely for dependency
+    // injection (see the class comment), so that check must be off —
+    // otherwise every debug build throws on its very first build and freezes
+    // on the splash screen. Set here (not only in main) so ANY way of
+    // mounting the app is covered; test/app_boot_test.dart guards it.
+    Provider.debugCheckInvalidValueType = null;
+
     final router = buildRouter(settingsProvider);
 
     return MultiProvider(

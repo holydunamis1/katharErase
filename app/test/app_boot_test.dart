@@ -5,6 +5,7 @@ import 'package:katharerase/core/providers/image_edit_provider.dart';
 import 'package:katharerase/core/providers/settings_provider.dart';
 import 'package:katharerase/core/providers/subscription_provider.dart';
 import 'package:katharerase/core/providers/theme_provider.dart';
+import 'package:katharerase/screens/home_screen.dart';
 import 'package:katharerase/screens/onboarding_screen.dart';
 
 /// Boots the REAL app widget tree (real router, real providers, real
@@ -33,5 +34,18 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(OnboardingScreen), findsOneWidget);
+  });
+
+  testWidgets('returning user: home screen builds without errors',
+      (tester) async {
+    final settings = SettingsProvider();
+    settings.value = settings.value.copyWith(hasCompletedOnboarding: true);
+
+    await tester.pumpWidget(_buildApp(settings));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 }
