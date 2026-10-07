@@ -63,10 +63,10 @@ void main() {
     await tester.pumpWidget(
       Provider<ImageEditProvider>.value(
         value: provider,
-        child: MaterialApp(
+        child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(
+          home: Scaffold(
             body: Align(
               alignment: Alignment.topLeft,
               child: SizedBox(
@@ -120,10 +120,10 @@ void main() {
     await tester.pumpWidget(
       Provider<ImageEditProvider>.value(
         value: provider,
-        child: MaterialApp(
+        child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(
+          home: Scaffold(
             body: Align(
               alignment: Alignment.topLeft,
               child: SizedBox(width: 200, height: 300, child: EditorCanvas()),

@@ -3,10 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:katharerase/generated/l10n/app_localizations.dart';
 import 'package:katharerase/screens/export_bottom_sheet.dart';
 
-Widget _host() => MaterialApp(
+Widget _host() => const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const Scaffold(
+      home: Scaffold(
         body: Align(
           alignment: Alignment.bottomCenter,
           child: ExportBottomSheet(),
