@@ -83,8 +83,7 @@ void main() {
             ),
           ),
         ),
-      ),
-    ;
+      );
     await tester.runAsync(() async {
       await tester.pumpWidget(app);
       // Let the photo decode (real async work).
@@ -137,8 +136,7 @@ void main() {
             ),
           ),
         ),
-      ),
-    ;
+      );
     await tester.runAsync(() async {
       await tester.pumpWidget(app);
       // Let the photo decode (real async work).
