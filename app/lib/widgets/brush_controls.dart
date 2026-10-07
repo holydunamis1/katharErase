@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
 import '../core/utils/constants.dart';
 import '../generated/l10n/app_localizations.dart';
+import 'labeled_slider.dart';
+import 'reset_mask_dialog.dart';
 
-/// Brush size slider (1-50px), Erase/Restore toggle, opacity slider.
-/// Controls image_edit_provider's currentBrushSizePx/currentBrushIsRestore/
-/// currentBrushOpacity (Gap 7) — the settings baked into the NEXT stroke
-/// drawn on editor_canvas.dart, not a history operation itself.
+/// Brush tool: Erase/Restore, size, opacity, and Reset. These settings are
+/// baked into the NEXT stroke drawn on the canvas.
 class BrushControls extends StatelessWidget {
   const BrushControls({super.key});
 
@@ -21,55 +22,49 @@ class BrushControls extends StatelessWidget {
     return ValueListenableBuilder<EditableImageState>(
       valueListenable: provider,
       builder: (context, state, _) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: SegmentedButton<bool>(
-                      segments: [
-                        ButtonSegment(
-                          value: false,
-                          label: Text(l10n.brushErase),
-                          icon: const Icon(Icons.remove_circle_outline),
-                        ),
-                        ButtonSegment(
-                          value: true,
-                          label: Text(l10n.brushRestore),
-                          icon: const Icon(Icons.add_circle_outline),
-                        ),
-                      ],
-                      selected: {state.currentBrushIsRestore},
-                      onSelectionChanged: (selected) {
-                        provider.setBrushMode(isRestore: selected.first);
-                      },
-                    ),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    segments: [
+                      ButtonSegment(value: false, label: Text(l10n.brushErase)),
+                      ButtonSegment(value: true, label: Text(l10n.brushRestore)),
+                    ],
+                    selected: {state.currentBrushIsRestore},
+                    onSelectionChanged: (selected) {
+                      HapticFeedback.selectionClick();
+                      provider.setBrushMode(isRestore: selected.first);
+                    },
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(l10n.brushSizeLabel, style: Theme.of(context).textTheme.labelMedium),
-              Slider(
-                value: state.currentBrushSizePx.clamp(
-                  kBrushSizeMinPx,
-                  kBrushSizeMaxPx,
                 ),
-                min: kBrushSizeMinPx,
-                max: kBrushSizeMaxPx,
-                onChanged: provider.setBrushSize,
-              ),
-              Text(l10n.brushOpacityLabel, style: Theme.of(context).textTheme.labelMedium),
-              Slider(
-                value: state.currentBrushOpacity.clamp(0.0, 1.0),
-                min: 0.0,
-                max: 1.0,
-                onChanged: provider.setBrushOpacity,
-              ),
-            ],
-          ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () => confirmResetMask(context, provider),
+                  child: Text(l10n.toolbarReset),
+                ),
+              ],
+            ),
+            LabeledSlider(
+              label: l10n.brushSizeLabel,
+              value: state.currentBrushSizePx,
+              min: kBrushSizeMinPx,
+              max: kBrushSizeMaxPx,
+              onChanged: provider.setBrushSize,
+              valueText: state.currentBrushSizePx.round().toString(),
+            ),
+            LabeledSlider(
+              label: l10n.brushOpacityLabel,
+              value: state.currentBrushOpacity,
+              min: 0.0,
+              max: 1.0,
+              onChanged: provider.setBrushOpacity,
+              valueText: '${(state.currentBrushOpacity * 100).round()}%',
+            ),
+          ],
         );
       },
     );

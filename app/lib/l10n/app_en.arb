@@ -43,9 +43,6 @@
   "cropAspect9x16": "9:16",
   "cropContinue": "Continue",
 
-  "editorTabAuto": "Auto",
-  "editorTabManual": "Manual",
-  "editorTabBackground": "Background",
   "editorSegmentationFailedMessage": "Your device doesn't support automatic background removal. Use the manual eraser below.",
 
   "brushErase": "Erase",
@@ -105,6 +102,9 @@
   "settingsRemindersSubtitle": "Remind me about unfinished edits",
   "settingsRemindersBlocked": "Notifications are turned off for KatharErase in your phone's settings.",
   "editorBrushHint": "Drag to paint. Pinch with two fingers to zoom.",
+  "editorToolCutout": "Cut-out",
+  "editorToolBrush": "Brush",
+  "editorToolBackground": "Background",
   "languageSystemDefault": "System default",
   "languageSheetTitle": "Language",
   "themeSheetTitle": "Theme",

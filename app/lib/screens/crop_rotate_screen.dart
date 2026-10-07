@@ -175,6 +175,7 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
                 ),
                 const SizedBox(height: 8),
                 SegmentedButton<_AspectOption>(
+                  showSelectedIcon: false,
                   segments: [
                     ButtonSegment(value: _AspectOption.free, label: Text(l10n.cropAspectFree)),
                     ButtonSegment(value: _AspectOption.square1x1, label: Text(l10n.cropAspect1x1)),

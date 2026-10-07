@@ -75,6 +75,10 @@ Future<void> main() async {
   // Apache-2.0 attribution for the bundled segmentation model (U2-Netp),
   // shown on the in-app licenses page (Settings > Open-source licenses).
   LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/licenses/inter_ofl.txt');
+    yield LicenseEntryWithLineBreaks(['Inter typeface'], text);
+  });
+  LicenseRegistry.addLicense(() async* {
     final text = await rootBundle.loadString('assets/licenses/u2net_apache2.txt');
     yield LicenseEntryWithLineBreaks(
       ['U2-Net (u2netp) segmentation model'],

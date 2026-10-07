@@ -81,3 +81,15 @@ flutter:
     - assets/images/
     - assets/models/segmentation.tflite
     - assets/licenses/u2net_apache2.txt
+    - assets/licenses/inter_ofl.txt
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+

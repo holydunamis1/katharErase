@@ -7,6 +7,7 @@ import '../core/models/user_settings.dart';
 import '../core/providers/settings_provider.dart';
 import '../core/providers/theme_provider.dart';
 import '../core/services/share_service.dart';
+import '../core/theme/app_tokens.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../platform/iap_service.dart';
 import '../platform/notification_service.dart';
@@ -97,10 +98,13 @@ class SettingsScreen extends StatelessWidget {
         valueListenable: themeProvider,
         builder: (context, themeMode, _) {
           return ListView(
+            padding: const EdgeInsets.all(AppSpace.l),
             children: [
+              _Group(children: [
               ListTile(
                 title: Text(l10n.settingsTheme),
                 trailing: SegmentedButton<ThemeMode>(
+                  showSelectedIcon: false,
                   segments: const [
                     ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode)),
                     ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto)),
@@ -153,7 +157,9 @@ class SettingsScreen extends StatelessWidget {
                   );
                 },
               ),
-              const Divider(),
+              ]),
+              const SizedBox(height: AppSpace.l),
+              _Group(children: [
               ListTile(
                 title: Text(l10n.settingsRestorePurchases),
                 leading: const Icon(Icons.restore),
@@ -164,7 +170,9 @@ class SettingsScreen extends StatelessWidget {
                 leading: const Icon(Icons.block),
                 onTap: () => context.push('/paywall'),
               ),
-              const Divider(),
+              ]),
+              const SizedBox(height: AppSpace.l),
+              _Group(children: [
               ListTile(
                 title: Text(l10n.settingsPrivacyPolicy),
                 leading: const Icon(Icons.privacy_tip_outlined),
@@ -193,9 +201,34 @@ class SettingsScreen extends StatelessWidget {
                   applicationName: 'KatharErase',
                 ),
               ),
+              ]),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// A rounded card holding related rows, separated by hairlines (grouped
+/// list, as on iOS).
+class _Group extends StatelessWidget {
+  const _Group({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i < children.length - 1)
+              const Divider(indent: AppSpace.l),
+          ],
+        ],
       ),
     );
   }

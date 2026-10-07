@@ -29,7 +29,7 @@ class BeforeAfterToggle extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 child: Icon(
                   state.showBeforeAfter
-                      ? Icons.visibility
+                      ? Icons.visibility_rounded
                       : Icons.visibility_outlined,
                   key: ValueKey(state.showBeforeAfter),
                   color: context.colors.onSurface,

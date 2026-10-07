@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../core/utils/extensions.dart';
+import '../core/theme/app_tokens.dart';
 
 /// Common scaffold used by every screen (Phase 5) for consistent safe
 /// area handling and token-driven background color.
@@ -23,7 +23,7 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.colors.surface,
+      backgroundColor: context.palette.background,
       appBar: appBar,
       floatingActionButton: floatingActionButton,
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,

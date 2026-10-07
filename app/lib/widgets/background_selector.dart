@@ -3,16 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
+import '../core/theme/app_tokens.dart';
 import '../core/utils/constants.dart';
 import '../generated/l10n/app_localizations.dart';
+import 'labeled_slider.dart';
 
-/// Grid: White, Transparent, Black, Color picker circle, Blur slider
-/// (0-25px).
-///
-/// Color picker note: no color-picker package exists in Section 6's
-/// dependency manifest. Rather than add one, this uses a preset swatch
-/// grid built from Flutter's own widgets — a conservative scope choice,
-/// not a full HSV-wheel picker.
+/// Preset swatches (no color-picker package is in the dependency manifest,
+/// so a curated swatch row is used instead of an HSV wheel).
 const List<Color> _presetSwatches = [
   Color(0xFFEF4444),
   Color(0xFFF59E0B),
@@ -26,6 +23,7 @@ const List<Color> _presetSwatches = [
   Color(0xFF6B7280),
 ];
 
+/// Background tool: White, Transparent, Black, color swatches, and Blur.
 class BackgroundSelector extends StatelessWidget {
   const BackgroundSelector({super.key});
 
@@ -37,101 +35,115 @@ class BackgroundSelector extends StatelessWidget {
     return ValueListenableBuilder<EditableImageState>(
       valueListenable: provider,
       builder: (context, state, _) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SingleChildScrollView(
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 70,
+              child: ListView(
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _swatchButton(
-                      label: l10n.backgroundWhite,
-                      color: Colors.white,
-                      selected: state.backgroundType == BackgroundType.white,
-                      onTap: () => provider.setBackgroundType(BackgroundType.white),
-                    ),
-                    _swatchButton(
-                      label: l10n.backgroundTransparent,
-                      color: null,
-                      selected:
-                          state.backgroundType == BackgroundType.transparent,
-                      onTap: () =>
-                          provider.setBackgroundType(BackgroundType.transparent),
-                    ),
-                    _swatchButton(
-                      label: l10n.backgroundBlack,
-                      color: Colors.black,
-                      selected: state.backgroundType == BackgroundType.black,
-                      onTap: () => provider.setBackgroundType(BackgroundType.black),
-                    ),
-                    for (final swatch in _presetSwatches)
-                      _swatchButton(
-                        label: null,
-                        color: swatch,
-                        selected: state.backgroundType == BackgroundType.solidColor &&
-                            state.bgColor == swatch,
-                        onTap: () => provider.setBgColor(swatch),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
                 children: [
-                  Text(l10n.backgroundBlurLabel, style: Theme.of(context).textTheme.labelMedium),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Slider(
-                      value: state.blurRadius.clamp(
-                        kBackgroundBlurMinPx,
-                        kBackgroundBlurMaxPx,
-                      ),
-                      min: kBackgroundBlurMinPx,
-                      max: kBackgroundBlurMaxPx,
-                      onChanged: provider.setBlurRadius,
-                    ),
+                  _Swatch(
+                    label: l10n.backgroundWhite,
+                    color: Colors.white,
+                    selected: state.backgroundType == BackgroundType.white,
+                    onTap: () => provider.setBackgroundType(BackgroundType.white),
                   ),
+                  _Swatch(
+                    label: l10n.backgroundTransparent,
+                    color: null,
+                    selected: state.backgroundType == BackgroundType.transparent,
+                    onTap: () =>
+                        provider.setBackgroundType(BackgroundType.transparent),
+                  ),
+                  _Swatch(
+                    label: l10n.backgroundBlack,
+                    color: Colors.black,
+                    selected: state.backgroundType == BackgroundType.black,
+                    onTap: () => provider.setBackgroundType(BackgroundType.black),
+                  ),
+                  for (final swatch in _presetSwatches)
+                    _Swatch(
+                      label: null,
+                      color: swatch,
+                      selected: state.backgroundType == BackgroundType.solidColor &&
+                          state.bgColor == swatch,
+                      onTap: () => provider.setBgColor(swatch),
+                    ),
                 ],
               ),
-            ],
-          ),
+            ),
+            LabeledSlider(
+              label: l10n.backgroundBlurLabel,
+              value: state.blurRadius,
+              min: kBackgroundBlurMinPx,
+              max: kBackgroundBlurMaxPx,
+              onChanged: provider.setBlurRadius,
+              valueText: state.blurRadius.round().toString(),
+            ),
+          ],
         );
       },
     );
   }
+}
 
-  Widget _swatchButton({
-    required String? label,
-    required Color? color,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: GestureDetector(
+class _Swatch extends StatelessWidget {
+  const _Swatch({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String? label;
+  final Color? color; // null = transparent (checkerboard)
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return SizedBox(
+      width: 68,
+      child: InkResponse(
         onTap: onTap,
+        radius: 34,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: color,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selected ? const Color(0xFF10B981) : const Color(0xFFE5E5EA),
-                  width: selected ? 3 : 1,
+                  color: selected ? p.accent : Colors.transparent,
+                  width: 2,
                 ),
               ),
-              child: color == null
-                  ? CustomPaint(painter: _CheckerboardIconPainter())
-                  : null,
+              child: ClipOval(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: p.separator, width: 0.5),
+                  ),
+                  child: color == null
+                      ? const CustomPaint(painter: _CheckerPainter())
+                      : null,
+                ),
+              ),
             ),
             if (label != null) ...[
-              const SizedBox(height: 4),
-              Text(label, style: const TextStyle(fontSize: 11)),
+              const SizedBox(height: 2),
+              Text(
+                label!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
             ],
           ],
         ),
@@ -140,13 +152,15 @@ class BackgroundSelector extends StatelessWidget {
   }
 }
 
-class _CheckerboardIconPainter extends CustomPainter {
+class _CheckerPainter extends CustomPainter {
+  const _CheckerPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     const tile = 6.0;
-    final light = Paint()..color = const Color(0xFFE0E0E0);
-    final dark = Paint()..color = const Color(0xFFBDBDBD);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), light);
+    final light = Paint()..color = const Color(0xFFE6E6EA);
+    final dark = Paint()..color = const Color(0xFFB8B8BF);
+    canvas.drawRect(Offset.zero & size, light);
     for (var y = 0.0; y < size.height; y += tile) {
       for (var x = 0.0; x < size.width; x += tile) {
         if (((x ~/ tile) + (y ~/ tile)) % 2 == 0) {

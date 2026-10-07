@@ -184,6 +184,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                 ],
                 const SizedBox(height: 16),
                 SegmentedButton<ExportFormat>(
+                  showSelectedIcon: false,
                   segments: [
                     ButtonSegment(value: ExportFormat.png, label: Text(l10n.exportFormatPng)),
                     ButtonSegment(value: ExportFormat.jpg, label: Text(l10n.exportFormatJpg)),

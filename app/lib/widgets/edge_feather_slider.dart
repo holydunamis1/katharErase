@@ -5,8 +5,9 @@ import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
 import '../core/utils/constants.dart';
 import '../generated/l10n/app_localizations.dart';
+import 'labeled_slider.dart';
 
-/// Slider 0-20px. Label: "Edge Smoothness."
+/// Cut-out tool: Edge Smoothness (0-20 px).
 class EdgeFeatherSlider extends StatelessWidget {
   const EdgeFeatherSlider({super.key});
 
@@ -18,20 +19,13 @@ class EdgeFeatherSlider extends StatelessWidget {
     return ValueListenableBuilder<EditableImageState>(
       valueListenable: provider,
       builder: (context, state, _) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.edgeFeatherLabel, style: Theme.of(context).textTheme.labelMedium),
-              Slider(
-                value: state.edgeFeather.clamp(kEdgeFeatherMinPx, kEdgeFeatherMaxPx),
-                min: kEdgeFeatherMinPx,
-                max: kEdgeFeatherMaxPx,
-                onChanged: provider.setEdgeFeather,
-              ),
-            ],
-          ),
+        return LabeledSlider(
+          label: l10n.edgeFeatherLabel,
+          value: state.edgeFeather,
+          min: kEdgeFeatherMinPx,
+          max: kEdgeFeatherMaxPx,
+          onChanged: provider.setEdgeFeather,
+          valueText: state.edgeFeather.round().toString(),
         );
       },
     );

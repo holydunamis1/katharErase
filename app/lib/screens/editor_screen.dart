@@ -9,22 +9,20 @@ import 'package:provider/provider.dart';
 import '../core/models/editable_image_state.dart';
 import '../core/providers/image_edit_provider.dart';
 import '../core/providers/settings_provider.dart';
+import '../core/theme/app_tokens.dart';
 import '../core/utils/constants.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../platform/image_prep_service.dart';
 import '../platform/notification_service.dart';
 import '../widgets/ad_banner_slot.dart';
-import '../widgets/app_scaffold.dart';
-import '../widgets/background_selector.dart';
-import '../widgets/bottom_toolbar.dart';
-import '../widgets/brush_controls.dart';
-import '../widgets/edge_feather_slider.dart';
 import '../widgets/editor_canvas.dart';
+import '../widgets/editor_tool_dock.dart';
+import '../widgets/editor_tool_panel.dart';
+import '../widgets/editor_top_bar.dart';
 import '../widgets/fallback_manual_editor.dart';
 import '../widgets/loading_overlay.dart';
 import 'export_bottom_sheet.dart';
 
-enum _EditorTab { auto, manual, background }
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({super.key, required this.imagePath});
@@ -37,7 +35,7 @@ class EditorScreen extends StatefulWidget {
 
 class _EditorScreenState extends State<EditorScreen>
     with WidgetsBindingObserver {
-  _EditorTab _tab = _EditorTab.auto;
+  EditorTool _tool = EditorTool.cutout;
   late final ImageEditProvider _provider;
   late final SettingsProvider _settings;
 
@@ -142,62 +140,57 @@ class _EditorScreenState extends State<EditorScreen>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final palette = context.palette;
 
-    return AppScaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        title: ValueListenableBuilder<EditableImageState>(
+    return Scaffold(
+      backgroundColor: palette.background,
+      body: SafeArea(
+        child: ValueListenableBuilder<EditableImageState>(
           valueListenable: _provider,
           builder: (context, state, _) {
-            if (state.autoSegmentationFailed) {
-              return Text(l10n.editorTabManual);
-            }
-            return SegmentedButton<_EditorTab>(
-              segments: [
-                ButtonSegment(value: _EditorTab.auto, label: Text(l10n.editorTabAuto)),
-                ButtonSegment(value: _EditorTab.manual, label: Text(l10n.editorTabManual)),
-                ButtonSegment(
-                  value: _EditorTab.background,
-                  label: Text(l10n.editorTabBackground),
+            final failed = state.autoSegmentationFailed;
+            return Column(
+              children: [
+                EditorTopBar(
+                  onBack: () => context.pop(),
+                  onExport: _openExportSheet,
+                  showEditActions: !failed,
                 ),
+                Expanded(
+                  child: failed
+                      // Auto-removal unavailable: manual brush only, with
+                      // its own controls.
+                      ? const FallbackManualEditor()
+                      : Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.l),
+                            child: ColoredBox(
+                              color: palette.surface,
+                              child: Stack(
+                                children: [
+                                  EditorCanvas(
+                                    brushEnabled: _tool == EditorTool.brush,
+                                  ),
+                                  LoadingOverlay(visible: state.isProcessing),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+                if (!failed) ...[
+                  EditorToolPanel(tool: _tool),
+                  EditorToolDock(
+                    selected: _tool,
+                    onSelected: (tool) => setState(() => _tool = tool),
+                  ),
+                ],
+                const AdBannerSlot(personalized: false),
               ],
-              selected: {_tab},
-              onSelectionChanged: (s) => setState(() => _tab = s.first),
             );
           },
         ),
-      ),
-      body: ValueListenableBuilder<EditableImageState>(
-        valueListenable: _provider,
-        builder: (context, state, _) {
-          return Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    if (state.autoSegmentationFailed)
-                      const FallbackManualEditor()
-                    else
-                      EditorCanvas(brushEnabled: _tab == _EditorTab.manual),
-                    LoadingOverlay(visible: state.isProcessing),
-                  ],
-                ),
-              ),
-              if (!state.autoSegmentationFailed)
-                switch (_tab) {
-                  _EditorTab.auto => const EdgeFeatherSlider(),
-                  _EditorTab.manual => const BrushControls(),
-                  _EditorTab.background => const BackgroundSelector(),
-                },
-              BottomToolbar(onExport: _openExportSheet),
-              const AdBannerSlot(personalized: false),
-            ],
-          );
-        },
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../core/utils/constants.dart';
+import '../core/theme/app_tokens.dart';
 import '../core/utils/extensions.dart';
 
 class PrimaryButton extends StatelessWidget {
@@ -19,29 +19,29 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent =
-        context.isDarkMode ? AppColors.accentDark : AppColors.accentLight;
+    final p = context.palette;
 
     return SizedBox(
       height: ThemeAccess.minTouchTarget,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: accent,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: accent.withValues(alpha: 0.5),
+          backgroundColor: p.accent,
+          foregroundColor: p.onAccent,
+          disabledBackgroundColor: p.muted,
+          disabledForegroundColor: p.text3,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.m),
           ),
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                  valueColor: AlwaysStoppedAnimation(p.onAccent),
                 ),
               )
             : Row(

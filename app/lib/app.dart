@@ -5,9 +5,9 @@ import 'core/providers/ad_provider.dart';
 import 'core/providers/image_edit_provider.dart';
 import 'core/providers/settings_provider.dart';
 import 'core/models/user_settings.dart';
+import 'core/theme/app_theme.dart';
 import 'core/providers/subscription_provider.dart';
 import 'core/providers/theme_provider.dart';
-import 'core/utils/constants.dart';
 import 'generated/l10n/app_localizations.dart';
 import 'router.dart';
 import 'widgets/preference_sheets.dart';
@@ -78,8 +78,8 @@ class KatharEraseApp extends StatelessWidget {
                   title: 'KatharErase',
                   debugShowCheckedModeBanner: false,
                   themeMode: themeMode,
-                  theme: _buildTheme(Brightness.light),
-                  darkTheme: _buildTheme(Brightness.dark),
+                  theme: buildAppTheme(Brightness.light),
+                  darkTheme: buildAppTheme(Brightness.dark),
                   routerConfig: router,
                   // null = follow the device language; otherwise the
                   // user's manual choice from the language sheet.
@@ -93,30 +93,6 @@ class KatharEraseApp extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-
-  ThemeData _buildTheme(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-    final accent = isDark ? AppColors.accentDark : AppColors.accentLight;
-    final bgPrimary = isDark ? AppColors.bgPrimaryDark : AppColors.bgPrimaryLight;
-    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-
-    return ThemeData(
-      brightness: brightness,
-      useMaterial3: true,
-      scaffoldBackgroundColor: bgPrimary,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: accent,
-        brightness: brightness,
-        primary: accent,
-        surface: bgPrimary,
-        onSurface: textPrimary,
-        error: isDark ? AppColors.errorDark : AppColors.errorLight,
-      ),
-      textTheme: Typography.material2021(platform: TargetPlatform.android)
-          .black
-          .apply(bodyColor: textPrimary, displayColor: textPrimary),
     );
   }
 }

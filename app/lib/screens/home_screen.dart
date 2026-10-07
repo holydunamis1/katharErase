@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../core/models/export_job.dart';
 import '../core/services/share_service.dart';
 import '../core/services/storage_service.dart';
+import '../core/theme/app_tokens.dart';
 import '../generated/l10n/app_localizations.dart';
 import '../widgets/ad_banner_slot.dart';
 import '../widgets/app_scaffold.dart';
@@ -139,16 +140,16 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _BigActionButton(
-                      icon: Icons.photo_camera,
+                    child: _ActionCard(
+                      icon: Icons.photo_camera_rounded,
                       label: l10n.homeCameraButton,
                       onTap: () => context.push('/camera'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _BigActionButton(
-                      icon: Icons.photo_library_outlined,
+                    child: _ActionCard(
+                      icon: Icons.photo_library_rounded,
                       label: l10n.homeGalleryButton,
                       onTap: () => _pickFromGallery(context),
                     ),
@@ -196,8 +197,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _BigActionButton extends StatelessWidget {
-  const _BigActionButton({
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -209,21 +210,40 @@ class _BigActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1.2,
+    final p = context.palette;
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
       child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        color: p.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.l),
+          side: BorderSide(color: p.separator, width: 0.5),
+        ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.l),
+          ),
           onTap: onTap,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 40),
-              const SizedBox(height: 8),
-              Text(label, style: Theme.of(context).textTheme.titleMedium),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpace.l),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: p.accentTint,
+                    borderRadius: BorderRadius.circular(AppRadius.m),
+                  ),
+                  child: Icon(icon, size: 26, color: p.accentText),
+                ),
+                const SizedBox(height: AppSpace.xl),
+                Text(label, style: Theme.of(context).textTheme.titleMedium),
+              ],
+            ),
           ),
         ),
       ),
