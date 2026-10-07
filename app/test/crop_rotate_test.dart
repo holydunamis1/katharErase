@@ -19,16 +19,16 @@ void main() {
       );
     });
 
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: CropRotateScreen(imagePath: path),
-      ),
+    final app = MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: CropRotateScreen(imagePath: path),
     );
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 300)),
-    );
+    await tester.runAsync(() async {
+      await tester.pumpWidget(app);
+      // Let the photo file load (real async work).
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    });
     await tester.pump();
     await tester.pump();
 

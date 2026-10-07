@@ -10,6 +10,12 @@ import 'package:katharerase/widgets/editor_canvas.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  setUpAll(() {
+    // The real app switches this off in KatharEraseApp.build; tests that
+    // host the provider directly must do the same.
+    Provider.debugCheckInvalidValueType = null;
+  });
+
   group('fitImageRect — the photo keeps its true proportions', () {
     test('square photo in a tall panel is letterboxed, never stretched', () {
       final fit = fitImageRect(const Size(1000, 1000), const Size(720, 970));
@@ -60,7 +66,7 @@ void main() {
     );
     provider.setBrushSize(20); // 20 on-screen px => 10 image px at scale 2
 
-    await tester.pumpWidget(
+    final app =
       Provider<ImageEditProvider>.value(
         value: provider,
         child: const MaterialApp(
@@ -78,11 +84,12 @@ void main() {
           ),
         ),
       ),
-    );
-    // Let the photo decode (real async work), then build the canvas.
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 400)),
-    );
+    ;
+    await tester.runAsync(() async {
+      await tester.pumpWidget(app);
+      // Let the photo decode (real async work).
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    });
     await tester.pump();
     await tester.pump();
 
@@ -117,7 +124,7 @@ void main() {
       maskBytes: Uint8List.fromList(base),
     );
 
-    await tester.pumpWidget(
+    final app =
       Provider<ImageEditProvider>.value(
         value: provider,
         child: const MaterialApp(
@@ -131,10 +138,12 @@ void main() {
           ),
         ),
       ),
-    );
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 400)),
-    );
+    ;
+    await tester.runAsync(() async {
+      await tester.pumpWidget(app);
+      // Let the photo decode (real async work).
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    });
     await tester.pump();
     await tester.pump();
 
