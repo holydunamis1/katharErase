@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -100,7 +101,10 @@ class ImageEditProvider extends ValueNotifier<EditableImageState> {
     return Uint8List(length)..fillRange(0, length, 255);
   }
 
-  void applyBrushStroke(List<Offset> points) {
+  /// Paints one stroke. [points] are in IMAGE pixel coordinates.
+  /// [sizeInImagePx] is the brush diameter in image pixels; when omitted the
+  /// brush-size slider value is used as-is (image pixels).
+  void applyBrushStroke(List<Offset> points, {double? sizeInImagePx}) {
     final size = value.imageSize;
     if (size == null || points.isEmpty) return;
     final width = size.width.round();
@@ -108,7 +112,7 @@ class ImageEditProvider extends ValueNotifier<EditableImageState> {
 
     final stroke = BrushStrokeEvent(
       points: points,
-      brushSizePx: value.currentBrushSizePx,
+      brushSizePx: sizeInImagePx ?? value.currentBrushSizePx,
       isRestore: value.currentBrushIsRestore,
       opacity: value.currentBrushOpacity,
     );
@@ -162,29 +166,72 @@ class ImageEditProvider extends ValueNotifier<EditableImageState> {
     value = value.copyWith(historyIndex: index, maskBytes: mask);
   }
 
+  /// Paints a stroke onto [mask]. Consecutive points are connected (a fast
+  /// swipe leaves a continuous line, not dots), and the stroke's opacity is
+  /// applied ONCE per pixel however many times the path overlaps itself.
   static void _paintStroke(
     Uint8List mask,
     int width,
     int height,
     BrushStrokeEvent stroke,
   ) {
-    final radius = (stroke.brushSizePx / 2).round().clamp(1, 200);
-    final delta = (255 * stroke.opacity).round().clamp(0, 255);
-    for (final point in stroke.points) {
-      final cx = point.dx.round();
-      final cy = point.dy.round();
+    if (stroke.points.isEmpty) return;
+    final radius = math.max(1, math.min(400, (stroke.brushSizePx / 2).round()));
+    final delta = math.max(0, math.min(255, (255 * stroke.opacity).round()));
+
+    // Densify the path so stamps are never more than radius/2 apart.
+    final step = math.max(1.0, radius / 2);
+    final path = <Offset>[];
+    for (var i = 0; i < stroke.points.length; i++) {
+      final p = stroke.points[i];
+      if (i > 0) {
+        final prev = stroke.points[i - 1];
+        final pieces = ((p - prev).distance / step).floor();
+        for (var k = 1; k <= pieces; k++) {
+          path.add(Offset.lerp(prev, p, k / (pieces + 1))!);
+        }
+      }
+      path.add(p);
+    }
+
+    // Bounding box of everything the stroke can touch.
+    var minX = width, minY = height, maxX = -1, maxY = -1;
+    for (final p in path) {
+      minX = math.min(minX, p.dx.round() - radius);
+      minY = math.min(minY, p.dy.round() - radius);
+      maxX = math.max(maxX, p.dx.round() + radius);
+      maxY = math.max(maxY, p.dy.round() + radius);
+    }
+    minX = math.max(0, minX);
+    minY = math.max(0, minY);
+    maxX = math.min(width - 1, maxX);
+    maxY = math.min(height - 1, maxY);
+    if (maxX < minX || maxY < minY) return;
+
+    final boxW = maxX - minX + 1;
+    final coverage = Uint8List(boxW * (maxY - minY + 1));
+    final r2 = radius * radius;
+    for (final p in path) {
+      final cx = p.dx.round();
+      final cy = p.dy.round();
       for (var dy = -radius; dy <= radius; dy++) {
         final y = cy + dy;
-        if (y < 0 || y >= height) continue;
+        if (y < minY || y > maxY) continue;
         for (var dx = -radius; dx <= radius; dx++) {
-          if (dx * dx + dy * dy > radius * radius) continue;
+          if (dx * dx + dy * dy > r2) continue;
           final x = cx + dx;
-          if (x < 0 || x >= width) continue;
-          final idx = y * width + x;
-          mask[idx] = stroke.isRestore
-              ? (mask[idx] + delta).clamp(0, 255)
-              : (mask[idx] - delta).clamp(0, 255);
+          if (x < minX || x > maxX) continue;
+          coverage[(y - minY) * boxW + (x - minX)] = 1;
         }
+      }
+    }
+
+    for (var y = minY; y <= maxY; y++) {
+      for (var x = minX; x <= maxX; x++) {
+        if (coverage[(y - minY) * boxW + (x - minX)] == 0) continue;
+        final idx = y * width + x;
+        final next = stroke.isRestore ? mask[idx] + delta : mask[idx] - delta;
+        mask[idx] = math.max(0, math.min(255, next));
       }
     }
   }

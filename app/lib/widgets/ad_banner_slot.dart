@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 
-import '../core/models/ad_load_state.dart';
-import '../core/providers/ad_provider.dart';
 import '../core/providers/subscription_provider.dart';
+import '../platform/ad_service.dart';
 
 const double kAdBannerSlotHeight = 60.0;
 
-/// Fixed-height container (default 60dp). Listens to ad_provider.
-/// Collapses to 0dp on failed or isAdFree=true. Never shows a broken
-/// placeholder.
+/// Fixed-height banner. Collapses to 0dp while loading, on failure, and
+/// when ad-free — never a broken placeholder.
 ///
-/// State-management note: AdProvider and SubscriptionProvider instances
-/// are located via Provider.of(context, listen: false) — DI only, per
-/// the architecture rule. Reactivity comes entirely from the nested
-/// ValueListenableBuilders below, not from package:provider's watch
-/// mechanism.
+/// Every slot owns its OWN BannerAd (created on mount, disposed on
+/// unmount). A single shared ad cannot be shown in two places at once, and
+/// one screen closing used to destroy the ad another screen was showing.
+///
+/// SubscriptionProvider is located via Provider.of(context, listen: false)
+/// — DI only, per the architecture rule; reactivity comes from the
+/// ValueListenableBuilder below.
 class AdBannerSlot extends StatefulWidget {
   const AdBannerSlot({super.key, required this.personalized});
 
@@ -27,21 +27,44 @@ class AdBannerSlot extends StatefulWidget {
 }
 
 class _AdBannerSlotState extends State<AdBannerSlot> {
-  late final AdProvider _adProvider;
   late final SubscriptionProvider _subscriptionProvider;
+  BannerAd? _banner;
+  bool _loaded = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _adProvider = Provider.of<AdProvider>(context, listen: false);
+  void initState() {
+    super.initState();
     _subscriptionProvider =
         Provider.of<SubscriptionProvider>(context, listen: false);
-    _adProvider.loadEditorBanner(personalized: widget.personalized);
+    _load();
+  }
+
+  Future<void> _load() async {
+    if (_subscriptionProvider.value) return; // ad-free, nothing to load
+    final banner = await AdService.instance.loadBannerAd(
+      personalized: widget.personalized,
+      onLoaded: (_) {
+        if (mounted) setState(() => _loaded = true);
+      },
+      onFailed: (_, __) {
+        if (mounted) {
+          setState(() {
+            _loaded = false;
+            _banner = null;
+          });
+        }
+      },
+    );
+    if (!mounted) {
+      banner?.dispose();
+      return;
+    }
+    if (banner != null) setState(() => _banner = banner);
   }
 
   @override
   void dispose() {
-    _adProvider.disposeBanner();
+    _banner?.dispose();
     super.dispose();
   }
 
@@ -50,37 +73,16 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
     return ValueListenableBuilder<bool>(
       valueListenable: _subscriptionProvider,
       builder: (context, isAdFree, _) {
-        if (isAdFree) return const SizedBox.shrink();
-
-        return ValueListenableBuilder<AdLoadState>(
-          valueListenable: _adProvider.editorBanner,
-          builder: (context, adState, _) {
-            if (adState.state != AdLoadStatus.loaded) {
-              // Covers idle, loading, AND failed — never a broken
-              // placeholder, per the architecture rule.
-              return const SizedBox.shrink();
-            }
-            return SizedBox(
-              height: kAdBannerSlotHeight,
-              width: double.infinity,
-              child: AdWidget(ad: _requireLoadedBanner()),
-            );
-          },
+        final banner = _banner;
+        if (isAdFree || banner == null || !_loaded) {
+          return const SizedBox.shrink();
+        }
+        return SizedBox(
+          height: kAdBannerSlotHeight,
+          width: double.infinity,
+          child: AdWidget(ad: banner),
         );
       },
     );
-  }
-
-  /// AdProvider doesn't expose the raw BannerAd publicly (it only
-  /// publishes AdLoadState) — this is a real gap between what
-  /// ad_provider.dart currently exposes and what this widget needs to
-  /// actually render the ad via AdWidget. Flagged and resolved here by
-  /// having ad_provider surface the active banner directly, since
-  /// AdWidget requires the concrete BannerAd instance, not just its
-  /// load-state enum.
-  BannerAd _requireLoadedBanner() {
-    final banner = _adProvider.activeBannerAd;
-    assert(banner != null, 'AdLoadStatus.loaded but no BannerAd available');
-    return banner!;
   }
 }

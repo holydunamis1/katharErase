@@ -182,7 +182,7 @@ class _EditorScreenState extends State<EditorScreen>
                     if (state.autoSegmentationFailed)
                       const FallbackManualEditor()
                     else
-                      const EditorCanvas(),
+                      EditorCanvas(brushEnabled: _tab == _EditorTab.manual),
                     LoadingOverlay(visible: state.isProcessing),
                   ],
                 ),

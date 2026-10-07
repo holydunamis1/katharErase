@@ -104,6 +104,7 @@
   "settingsReminders": "Edit reminders",
   "settingsRemindersSubtitle": "Remind me about unfinished edits",
   "settingsRemindersBlocked": "Notifications are turned off for KatharErase in your phone's settings.",
+  "editorBrushHint": "Drag to paint. Pinch with two fingers to zoom.",
   "languageSystemDefault": "System default",
   "languageSheetTitle": "Language",
   "themeSheetTitle": "Theme",

@@ -40,7 +40,7 @@ class FallbackManualEditor extends StatelessWidget {
             ),
           ),
         ),
-        const Expanded(child: EditorCanvas()),
+        const Expanded(child: EditorCanvas(brushEnabled: true)),
         const BrushControls(),
       ],
     );

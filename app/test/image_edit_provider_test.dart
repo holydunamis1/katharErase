@@ -107,4 +107,38 @@ void main() {
     expect(mask[0], 255);
     expect(mask[5 * _w + 6], 0);
   });
+
+  test('a fast swipe paints a continuous line, not isolated dots', () {
+    final provider = _providerWithBase();
+    provider.setBrushSize(2); // radius 1
+    provider.applyBrushStroke(const [Offset(0, 5), Offset(11, 5)]);
+
+    final mask = provider.value.maskBytes!;
+    for (var x = 0; x < _w; x++) {
+      expect(mask[5 * _w + x], 0, reason: 'gap at x=$x');
+    }
+  });
+
+  test('opacity is applied once per pixel even when the path overlaps', () {
+    final provider = _providerWithBase();
+    provider.setBrushSize(4);
+    provider.setBrushOpacity(0.5);
+    provider.applyBrushStroke(
+      const [Offset(6, 5), Offset(6, 5), Offset(7, 5), Offset(6, 5)],
+    );
+
+    // 200 - round(255 * 0.5) = 72, once — not compounded per stamp.
+    expect(provider.value.maskBytes![5 * _w + 6], 72);
+  });
+
+  test('sizeInImagePx overrides the slider value', () {
+    final provider = _providerWithBase();
+    provider.setBrushSize(50); // would cover the whole 12x10 image
+    provider.applyBrushStroke(const [Offset(6, 5)], sizeInImagePx: 2);
+
+    final mask = provider.value.maskBytes!;
+    expect(mask[5 * _w + 6], 0);
+    expect(mask[0], 200);
+    expect(mask[9 * _w + 11], 200);
+  });
 }

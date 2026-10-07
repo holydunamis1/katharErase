@@ -138,6 +138,10 @@ class _CropRotateScreenState extends State<CropRotateScreen> {
               children: [
                 if (_imageBytes != null)
                   Crop(
+                    // The crop widget reads aspectRatio only when it is
+                    // created, so a new ratio needs a new widget: keying on
+                    // the ratio makes Free / 1:1 / 4:5 / 9:16 take effect.
+                    key: ValueKey<double?>(_aspectRatio),
                     image: _imageBytes!,
                     controller: _cropController,
                     aspectRatio: _aspectRatio,

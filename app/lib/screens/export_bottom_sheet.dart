@@ -31,6 +31,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
   int _quality = 90;
   ResizeMode _resizeMode = ResizeMode.original;
   bool _isExporting = false;
+  // Shown INSIDE the sheet: a toast would appear on the page behind it,
+  // hidden by the sheet itself.
+  String? _errorMessage;
   final TextEditingController _customWidthController = TextEditingController();
   final TextEditingController _customHeightController = TextEditingController();
 
@@ -51,6 +54,7 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
   }
 
   Future<void> _export(BuildContext context, {required bool alsoShare}) async {
+    if (_errorMessage != null) setState(() => _errorMessage = null);
     final l10n = AppLocalizations.of(context);
     final imageProvider = Provider.of<ImageEditProvider>(context, listen: false);
     final state = imageProvider.value;
@@ -134,7 +138,9 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
         Navigator.of(context).pop();
         context.go('/');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('EXPORT FAILED: $e\n$stack');
+      if (mounted) setState(() => _errorMessage = l10n.exportFailed);
       if (context.mounted) {
         ToastNotification.show(context, message: l10n.exportFailed, type: ToastType.error);
       }
@@ -152,18 +158,30 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Stack(
+        // SafeArea keeps the buttons clear of the system navigation bar;
+        // the scroll view keeps them reachable on short screens.
+        child: SafeArea(
+          top: false,
+          child: Stack(
           children: [
-            Column(
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(l10n.exportTitle, style: Theme.of(context).textTheme.titleLarge),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 SegmentedButton<ExportFormat>(
                   segments: [
@@ -256,8 +274,10 @@ class _ExportBottomSheetState extends State<ExportBottomSheet> {
                 ),
               ],
             ),
+            ),
             LoadingOverlay(visible: _isExporting, message: l10n.exportInProgress),
           ],
+        ),
         ),
       ),
     );
