@@ -95,7 +95,7 @@ abstract final class AppRadius {
   static const double xl = 28;
 }
 
-/// Exposes the palette through Theme.of(context).extension<AppTokens>().
+/// Exposes the palette through `Theme.of(context).extension<AppTokens>()`.
 @immutable
 class AppTokens extends ThemeExtension<AppTokens> {
   const AppTokens(this.palette);
