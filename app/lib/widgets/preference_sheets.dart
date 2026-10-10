@@ -11,7 +11,17 @@ const String kLanguageSystem = 'system';
 
 /// Native names of the languages the app ships. Add an entry here whenever
 /// a new lib/l10n/app_<code>.arb is added.
-const Map<String, String> kLanguageNativeNames = {'en': 'English'};
+const Map<String, String> kLanguageNativeNames = {
+  'en': 'English',
+  'es': 'Español',
+  'pt': 'Português (Brasil)',
+  'fr': 'Français',
+  'de': 'Deutsch',
+  'hi': 'हिन्दी',
+  'id': 'Bahasa Indonesia',
+  'ar': 'العربية',
+  'tr': 'Türkçe',
+};
 
 String languageLabel(AppLocalizations l10n, String code) {
   if (code == kLanguageSystem) return l10n.languageSystemDefault;

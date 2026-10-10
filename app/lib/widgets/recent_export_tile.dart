@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/models/export_job.dart';
 import '../core/utils/date_formatter.dart';
 import '../core/utils/extensions.dart';
+import '../generated/l10n/app_localizations.dart';
 
 /// Thumbnail, format badge, date, tap to share again. Used in home_
 /// screen.dart's recent exports grid (Phase 5).
@@ -28,9 +29,9 @@ class RecentExportTile extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             _thumbnail(context),
-            Positioned(
+            PositionedDirectional(
               top: 6,
-              left: 6,
+              start: 6,
               child: _FormatBadge(format: job.format),
             ),
             Positioned(
@@ -47,7 +48,12 @@ class RecentExportTile extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  DateFormatter.relative(job.createdAt),
+                  DateFormatter.relative(
+                    job.createdAt,
+                    locale: Localizations.localeOf(context).toString(),
+                    todayLabel: AppLocalizations.of(context).dateToday,
+                    yesterdayLabel: AppLocalizations.of(context).dateYesterday,
+                  ),
                   style: const TextStyle(color: Colors.white, fontSize: 11),
                 ),
               ),

@@ -12,12 +12,16 @@ class IconButton48 extends StatelessWidget {
     required this.onPressed,
     this.tooltip,
     this.isActive = false,
+    this.mirror = false,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
   final String? tooltip;
   final bool isActive;
+
+  /// Flip the glyph in right-to-left languages (back arrows, undo/redo).
+  final bool mirror;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +38,7 @@ class IconButton48 extends StatelessWidget {
           child: Icon(
             icon,
             size: 24,
+            matchTextDirection: mirror,
             color: onPressed == null
                 ? context.colors.onSurface.withValues(alpha: 0.38)
                 : context.colors.onSurface,

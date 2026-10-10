@@ -28,11 +28,12 @@ class EditorTopBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+      padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 12, 4),
       child: Row(
         children: [
           IconButton48(
             icon: Icons.arrow_back_ios_new_rounded,
+            mirror: true,
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: onBack,
           ),
@@ -46,11 +47,13 @@ class EditorTopBar extends StatelessWidget {
                   children: [
                     IconButton48(
                       icon: Icons.undo_rounded,
+                      mirror: true,
                       tooltip: l10n.toolbarUndo,
                       onPressed: provider.canUndo ? provider.undo : null,
                     ),
                     IconButton48(
                       icon: Icons.redo_rounded,
+                      mirror: true,
                       tooltip: l10n.toolbarRedo,
                       onPressed: provider.canRedo ? provider.redo : null,
                     ),

@@ -24,14 +24,20 @@ class DateFormatter {
   }
 
   /// Relative label for recent exports: "Today", "Yesterday", or short date.
-  static String relative(DateTime date, {DateTime? now, String locale = 'en'}) {
+  static String relative(
+    DateTime date, {
+    DateTime? now,
+    String locale = 'en',
+    String todayLabel = 'Today',
+    String yesterdayLabel = 'Yesterday',
+  }) {
     final reference = now ?? DateTime.now();
     final today = DateTime(reference.year, reference.month, reference.day);
     final target = DateTime(date.year, date.month, date.day);
     final diff = today.difference(target).inDays;
 
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
+    if (diff == 0) return todayLabel;
+    if (diff == 1) return yesterdayLabel;
     if (diff < 7) return DateFormat.EEEE(locale).format(date); // "Monday"
     return short(date, locale: locale);
   }

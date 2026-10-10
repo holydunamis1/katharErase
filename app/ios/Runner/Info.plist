@@ -4,6 +4,18 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+		<string>pt</string>
+		<string>fr</string>
+		<string>de</string>
+		<string>hi</string>
+		<string>id</string>
+		<string>ar</string>
+		<string>tr</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>KatharErase</string>
 	<key>CFBundleExecutable</key>

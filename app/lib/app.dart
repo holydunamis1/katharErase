@@ -12,7 +12,7 @@ import 'generated/l10n/app_localizations.dart';
 import 'router.dart';
 import 'widgets/preference_sheets.dart';
 
-/// MaterialApp, GoRouter, Directionality, theme injection, Provider.value
+/// MaterialApp, GoRouter, theme injection, Provider.value
 /// tree.
 ///
 /// Provider.value note: all five providers here are plain classes (four
@@ -63,18 +63,12 @@ class KatharEraseApp extends StatelessWidget {
       child: ValueListenableBuilder<ThemeMode>(
         valueListenable: themeProvider,
         builder: (context, themeMode, _) {
-          // Explicit top-level Directionality per Section 5, File 48 —
-          // MaterialApp.router already resolves directionality internally
-          // via its own Localizations, so this is intentional redundancy/
-          // future-proofing rather than load-bearing for the English-only
-          // v1 locale (Section 5, File 50), kept per the manifest's
-          // explicit listing rather than silently dropped as "unneeded."
+          // No forced Directionality: MaterialApp resolves text direction
+          // from the active locale, so Arabic lays out right-to-left.
           return ValueListenableBuilder<UserSettings>(
             valueListenable: settingsProvider,
             builder: (context, settings, _) {
-              return Directionality(
-                textDirection: TextDirection.ltr,
-                child: MaterialApp.router(
+              return MaterialApp.router(
                   title: 'KatharErase',
                   debugShowCheckedModeBanner: false,
                   themeMode: themeMode,
@@ -87,7 +81,6 @@ class KatharEraseApp extends StatelessWidget {
                   localizationsDelegates:
                       AppLocalizations.localizationsDelegates,
                   supportedLocales: AppLocalizations.supportedLocales,
-                ),
               );
             },
           );

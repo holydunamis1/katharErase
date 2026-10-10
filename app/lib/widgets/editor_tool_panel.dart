@@ -25,7 +25,7 @@ class EditorToolPanel extends StatelessWidget {
         decoration: BoxDecoration(color: p.surface),
         // Scrolls instead of overflowing when text is scaled up.
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 12, 4),
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 12, 4),
           child: switch (tool) {
             EditorTool.cutout => const EdgeFeatherSlider(),
             EditorTool.brush => const BrushControls(),
