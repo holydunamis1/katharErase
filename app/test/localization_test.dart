@@ -70,16 +70,25 @@ void main() {
       });
     }
 
-    test('German strings stay within 1.6x (or +20 chars) of English length (layout risk)', () {
-      final de = _arb('de');
-      for (final key in enKeys) {
-        final e = (en[key] as String).length;
-        final d = (de[key] as String).length;
-        if (e < 12) continue;
-        final limit = (e * 1.6).ceil() > e + 20 ? (e * 1.6).ceil() : e + 20;
-        expect(d, lessThanOrEqualTo(limit), reason: key);
-      }
-    });
+    // Short labels live in chips, tabs and buttons where a long word
+    // overflows; sentences wrap, so only labels are length-checked.
+    const labelKeys = [
+      'brushErase', 'brushRestore', 'exportResizeCustom',
+      'exportResizeOriginal', 'backgroundTransparent', 'editorToolCutout',
+      'editorToolBrush', 'editorToolBackground', 'cropAspectFree',
+      'toolbarExport', 'toolbarReset', 'onboardingNext',
+      'onboardingGetStarted', 'homeCameraButton', 'homeGalleryButton',
+      'cropContinue', 'exportShare',
+    ];
+    for (final code in _languages) {
+      test('$code short UI labels are at most 16 characters', () {
+        final arb = _arb(code);
+        for (final key in labelKeys) {
+          expect((arb[key] as String).length, lessThanOrEqualTo(16),
+              reason: '$code/$key');
+        }
+      });
+    }
   });
 
   group('language list', () {

@@ -63,7 +63,7 @@
   "exportFormatWebp": "WEBP",
   "exportResizeLabel": "Größe ändern",
   "exportResizeOriginal": "Original",
-  "exportResizeCustom": "Benutzerdefiniert",
+  "exportResizeCustom": "Eigene",
   "exportWidthLabel": "Breite (px)",
   "exportHeightLabel": "Höhe (px)",
   "exportSaveToGallery": "In Galerie speichern",
