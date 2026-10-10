@@ -14,7 +14,13 @@ import 'package:katharerase/screens/home_screen.dart';
 import 'package:katharerase/screens/onboarding_screen.dart';
 import 'package:katharerase/widgets/preference_sheets.dart';
 
-const _languages = ['es', 'pt', 'fr', 'de', 'hi', 'id', 'ar', 'tr'];
+const _languages = [
+  'es', 'pt', 'fr', 'de', 'hi', 'id', 'ar', 'tr', //
+  'he', 'ja', 'ko', 'zh', 'ru', 'it', 'pl', 'vi', 'th',
+];
+
+/// Languages written right-to-left.
+const _rtl = {'ar', 'he'};
 
 Map<String, dynamic> _arb(String code) =>
     jsonDecode(File('lib/l10n/app_$code.arb').readAsStringSync())
@@ -97,7 +103,7 @@ void main() {
         expect(kLanguageNativeNames.containsKey(locale.languageCode), isTrue,
             reason: locale.languageCode);
       }
-      expect(AppLocalizations.supportedLocales.length, 9);
+      expect(AppLocalizations.supportedLocales.length, _languages.length + 1);
     });
   });
 
@@ -116,7 +122,7 @@ void main() {
         final context = tester.element(find.byType(OnboardingScreen));
         expect(
           Directionality.of(context),
-          code == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+          _rtl.contains(code) ? TextDirection.rtl : TextDirection.ltr,
         );
         expect(Localizations.localeOf(context).languageCode, code);
       });

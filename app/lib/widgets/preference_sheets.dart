@@ -21,6 +21,15 @@ const Map<String, String> kLanguageNativeNames = {
   'id': 'Bahasa Indonesia',
   'ar': 'العربية',
   'tr': 'Türkçe',
+  'he': 'עברית',
+  'ja': '日本語',
+  'ko': '한국어',
+  'zh': '简体中文',
+  'ru': 'Русский',
+  'it': 'Italiano',
+  'pl': 'Polski',
+  'vi': 'Tiếng Việt',
+  'th': 'ไทย',
 };
 
 String languageLabel(AppLocalizations l10n, String code) {
