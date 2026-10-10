@@ -15,6 +15,15 @@
 		<string>id</string>
 		<string>ar</string>
 		<string>tr</string>
+		<string>he</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>zh-Hans</string>
+		<string>ru</string>
+		<string>it</string>
+		<string>pl</string>
+		<string>vi</string>
+		<string>th</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>KatharErase</string>
