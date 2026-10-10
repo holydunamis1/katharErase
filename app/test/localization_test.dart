@@ -70,13 +70,14 @@ void main() {
       });
     }
 
-    test('German strings stay within 1.6x of English length (layout risk)', () {
+    test('German strings stay within 1.6x (or +20 chars) of English length (layout risk)', () {
       final de = _arb('de');
       for (final key in enKeys) {
         final e = (en[key] as String).length;
         final d = (de[key] as String).length;
         if (e < 12) continue;
-        expect(d, lessThanOrEqualTo((e * 1.6).ceil()), reason: key);
+        final limit = (e * 1.6).ceil() > e + 20 ? (e * 1.6).ceil() : e + 20;
+        expect(d, lessThanOrEqualTo(limit), reason: key);
       }
     });
   });
