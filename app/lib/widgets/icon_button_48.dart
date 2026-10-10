@@ -35,13 +35,15 @@ class IconButton48 extends StatelessWidget {
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onPressed,
-          child: Icon(
-            icon,
-            size: 24,
-            matchTextDirection: mirror,
-            color: onPressed == null
-                ? context.colors.onSurface.withValues(alpha: 0.38)
-                : context.colors.onSurface,
+          child: Transform.flip(
+            flipX: mirror && Directionality.of(context) == TextDirection.rtl,
+            child: Icon(
+              icon,
+              size: 24,
+              color: onPressed == null
+                  ? context.colors.onSurface.withValues(alpha: 0.38)
+                  : context.colors.onSurface,
+            ),
           ),
         ),
       ),
